@@ -1,5 +1,5 @@
 /*    
-    This file is a part of stonefish_ros.
+    This file is a part of stonefish_ros2.
 
     stonefish_ros is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,17 +16,43 @@
 */
 
 //
-//  parsed_simulator.cpp
-//  stonefish_ros
+//  stonefish_simulator.cpp
+//  stonefish_ros2
 //
-//  Created by Patryk Cieslak on 28/09/22.
-//  Copyright (c) 2022 Patryk Cieslak. All rights reserved.
+//  Created by Patryk Cieslak on 02/10/23.
+//  Copyright (c) 2023 Patryk Cieslak. All rights reserved.
 //
 
 #include "rclcpp/rclcpp.hpp"
-#include "stonefish_ros2/ROSSimulationApp.h"
-#include "stonefish_ros2/ROSSimulationManager.h"
 #include <Stonefish/utils/SystemUtil.hpp>
+#include "stonefish_ros2/ROS2SimulationManager.h"
+#include "stonefish_ros2/ROS2GraphicalSimulationApp.h"
+
+using namespace std::chrono_literals;
+
+class StonefishNode : public rclcpp::Node
+{
+public:
+    StonefishNode(const std::string& scenarioPath,
+                           const std::string& dataPath, 
+                           const sf::RenderSettings& s, 
+                           const sf::HelperSettings& h,
+                           sf::Scalar rate) 
+                           : Node("stonefish_simulator")
+    {   
+        manager_ = std::shared_ptr<sf::ROS2SimulationManager>(new sf::ROS2SimulationManager(rate, scenarioPath, std::shared_ptr<rclcpp::Node>(this)));
+        app_ = std::shared_ptr<sf::ROS2GraphicalSimulationApp>(new sf::ROS2GraphicalSimulationApp("Stonefish Simulator", 
+                                                                                                 dataPath, s, h, 
+                                                                                                 manager_.get()));
+        app_->Startup();
+        tickTimer_ = this->create_wall_timer(16667us, std::bind(&sf::ROS2GraphicalSimulationApp::Tick, app_));
+    };
+
+private:
+    std::shared_ptr<sf::ROS2SimulationManager> manager_;
+    std::shared_ptr<sf::ROS2GraphicalSimulationApp> app_;
+    rclcpp::TimerBase::SharedPtr tickTimer_;
+};
 
 int main(int argc, char **argv)
 {
@@ -35,12 +61,12 @@ int main(int argc, char **argv)
     //Check number of command line arguments
 	if(argc < 7)
 	{
-		//ROS_FATAL("Not enough command line arguments provided!");
+		std::cout << "Not enough command-line arguments provided!" << std::endl;
 		exit(-1);
 	}
 
     //Parse the arguments
-    std::string dataDirPath = std::string(argv[1]) + "/";
+    std::string dataPath = std::string(argv[1]) + "/";
     std::string scenarioPath(argv[2]);
     sf::Scalar rate = atof(argv[3]);
 
@@ -86,13 +112,8 @@ int main(int argc, char **argv)
     h.showActuators = false;
     h.showForces = false;
 	
-    // Create simulation
-	sf::ROSSimulationManager manager(rate, scenarioPath);
-    sf::ROSSimulationApp app("Stonefish Simulator", dataDirPath, s, h, &manager); 
-    
     // Start simulation
-    rclcpp::spin(std::make_shared<sf::ROSSimulationApp>(app));
-    rclcpp::shutdown();
-    
+    std::shared_ptr<StonefishNode> node(new StonefishNode(scenarioPath, dataPath, s, h, rate));
+    rclcpp::spin(node);
     return 0;
 }

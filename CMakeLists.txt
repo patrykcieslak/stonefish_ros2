@@ -5,27 +5,87 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(Stonefish REQUIRED stonefish>=1.3.0)
+find_package(ament_index_cpp REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(PCL REQUIRED)
+find_package(pcl_conversions REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(Stonefish REQUIRED 1.3.0)
+
+# messages
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/Int32Stamped.msg"
+  "msg/BeaconInfo.msg"
+  "msg/NEDPose.msg"
+  "msg/INS.msg"
+  "msg/DVLBeam.msg"
+  "msg/DVL.msg"
+  "msg/ThrusterState.msg"
+  "srv/SonarSettings.srv"
+  "srv/SonarSettings2.srv"
+  DEPENDENCIES std_msgs std_srvs geometry_msgs
+)
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_typesupport_cpp)
+
+find_package(PCL REQUIRED) # Interferes with rosidl_generate_interfaces and thus has to be called after
 
 # define libraries
-add_library(stonefish_ros2 SHARED
-#src/ROSInterface.cpp
-#src/ROSControlInterface.cpp
-src/ROSSimulationManager.cpp
-src/ROSSimulationApp.cpp
-#src/ROSScenarioParser.cpp
+add_library(${PROJECT_NAME}_lib SHARED
+  src/${PROJECT_NAME}/ROS2ConsoleSimulationApp.cpp
+  src/${PROJECT_NAME}/ROS2GraphicalSimulationApp.cpp
+  src/${PROJECT_NAME}/ROS2SimulationManager.cpp
+  src/${PROJECT_NAME}/ROS2ScenarioParser.cpp
+  src/${PROJECT_NAME}/ROS2Interface.cpp
 )
-target_link_libraries(stonefish_ros2 ${Stonefish_LIBRARIES})
-ament_target_dependencies(stonefish_ros2 rclcpp ${${PROJECT_NAME}_EXPORTED_TARGETS})
-ament_export_libraries(stonefish_ros2)
+target_link_libraries(${PROJECT_NAME}_lib Stonefish::Stonefish "${cpp_typesupport_target}")
+target_include_directories(${PROJECT_NAME}_lib PUBLIC include)
+ament_target_dependencies(${PROJECT_NAME}_lib
+ rclcpp 
+ ament_index_cpp 
+ std_srvs
+ geometry_msgs
+ nav_msgs
+ visualization_msgs
+ sensor_msgs
+ PCL
+ pcl_conversions
+ image_transport
+ tf2
+ tf2_ros
+)
+ament_export_libraries(${PROJECT_NAME}_lib)
 
 # define exacutables
-add_executable(parsed_simulator src/parsed_simulator.cpp)
-ament_target_dependencies(parsed_simulator stonefish_ros2::stonefish_ros2)
+add_executable(stonefish_simulator src/stonefish_simulator.cpp)
+target_link_libraries(stonefish_simulator ${PROJECT_NAME}_lib)
+ament_target_dependencies(stonefish_simulator rclcpp)
+
+add_executable(stonefish_simulator_nogpu src/stonefish_simulator_nogpu.cpp)
+target_link_libraries(stonefish_simulator_nogpu ${PROJECT_NAME}_lib)
+ament_target_dependencies(stonefish_simulator_nogpu rclcpp)
+
+install(TARGETS
+  stonefish_simulator
+  stonefish_simulator_nogpu
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}/
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

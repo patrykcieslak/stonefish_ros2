@@ -1,5 +1,5 @@
 /*    
-    This file is a part of stonefish_ros.
+    This file is a part of stonefish_ros2.
 
     stonefish_ros is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,26 +16,28 @@
 */
 
 //
-//  ROSSimulationApp.h
+//  ROS2ConsoleSimulationApp.h
 //  stonefish_ros2
 //
-//  Created by Patryk Cieslak on 28/09/22.
-//  Copyright (c) 2022 Patryk Cieslak. All rights reserved.
+//  Created by Patryk Cieslak on 05/10/23.
+//  Copyright (c) 2023 Patryk Cieslak. All rights reserved.
 //
 
-#ifndef __Stonefish_ROSSimulationApp__
-#define __Stonefish_ROSSimulationApp__
+#ifndef __Stonefish_ROS2ConsoleSimulationApp__
+#define __Stonefish_ROS2ConsoleSimulationApp__
 
-#include <Stonefish/core/SimulationApp.h>
-#include "rclcpp/rclcpp.hpp"
+#include <Stonefish/core/ConsoleSimulationApp.h>
 
 namespace sf
 {
-    class ROSSimulationApp : public SimulationApp, rclcpp::Node
+    class ROS2SimulationManager;
+
+    class ROS2ConsoleSimulationApp : public ConsoleSimulationApp
     {
-        
-
-
+    public:
+        ROS2ConsoleSimulationApp(std::string name, std::string dataPath, ROS2SimulationManager* sim);
+        void Startup();
+        void Shutdown();
     };
 }
 
