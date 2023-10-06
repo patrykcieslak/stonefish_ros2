@@ -42,16 +42,19 @@ rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_type
 find_package(PCL REQUIRED) # Interferes with rosidl_generate_interfaces and thus has to be called after
 
 # define libraries
-add_library(${PROJECT_NAME}_lib SHARED
+add_library(stonefish_ros2_interface SHARED
   src/${PROJECT_NAME}/ROS2ConsoleSimulationApp.cpp
   src/${PROJECT_NAME}/ROS2GraphicalSimulationApp.cpp
   src/${PROJECT_NAME}/ROS2SimulationManager.cpp
   src/${PROJECT_NAME}/ROS2ScenarioParser.cpp
   src/${PROJECT_NAME}/ROS2Interface.cpp
 )
-target_link_libraries(${PROJECT_NAME}_lib Stonefish::Stonefish "${cpp_typesupport_target}")
-target_include_directories(${PROJECT_NAME}_lib PUBLIC include)
-ament_target_dependencies(${PROJECT_NAME}_lib
+target_link_libraries(stonefish_ros2_interface Stonefish::Stonefish "${cpp_typesupport_target}")
+target_include_directories(stonefish_ros2_interface
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(stonefish_ros2_interface
  rclcpp 
  ament_index_cpp 
  std_srvs
@@ -65,26 +68,36 @@ ament_target_dependencies(${PROJECT_NAME}_lib
  tf2
  tf2_ros
 )
-ament_export_libraries(${PROJECT_NAME}_lib)
+ament_export_libraries(stonefish_ros2_interface)
+ament_export_include_directories(include)
 
 # define exacutables
 add_executable(stonefish_simulator src/stonefish_simulator.cpp)
-target_link_libraries(stonefish_simulator ${PROJECT_NAME}_lib)
+target_link_libraries(stonefish_simulator stonefish_ros2_interface)
 ament_target_dependencies(stonefish_simulator rclcpp)
 
 add_executable(stonefish_simulator_nogpu src/stonefish_simulator_nogpu.cpp)
-target_link_libraries(stonefish_simulator_nogpu ${PROJECT_NAME}_lib)
+target_link_libraries(stonefish_simulator_nogpu stonefish_ros2_interface)
 ament_target_dependencies(stonefish_simulator_nogpu rclcpp)
 
-install(TARGETS
-  stonefish_simulator
-  stonefish_simulator_nogpu
-  DESTINATION lib/${PROJECT_NAME}
+# installation
+install(
+  TARGETS stonefish_ros2_interface
+  LIBRARY DESTINATION lib
+  INCLUDES DESTINATION include
+)
+install(
+  DIRECTORY include
+  DESTINATION include
 )
 
-install(DIRECTORY
-  launch
-  DESTINATION share/${PROJECT_NAME}/
+install(
+  TARGETS stonefish_simulator stonefish_simulator_nogpu
+  DESTINATION lib/${PROJECT_NAME}
+)
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
