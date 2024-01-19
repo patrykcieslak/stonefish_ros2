@@ -26,7 +26,9 @@
 #include "stonefish_ros2/ROS2SimulationManager.h"
 #include "stonefish_ros2/ROS2ScenarioParser.h"
 #include "stonefish_ros2/ROS2Interface.h"
+
 #include "stonefish_ros2/msg/thruster_state.hpp"
+#include "stonefish_ros2/msg/debug_physics.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/bool.hpp"
 
@@ -463,28 +465,88 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
     }
 
     /////////////////////////////////// DEBUG //////////////////////////////////////////
-    auto hydroLambda = [](Robot* r)
-    {
-        std::stringstream output;
-        size_t lID = 0;
-        SolidEntity* link;
-        sf::Vector3 Fb, Tb, Fd, Td, Fs, Ts;
-    
-        while((link = r->getLink(lID++)) != nullptr)
-        {
-            link->getHydrodynamicForces(Fb, Tb, Fd, Td, Fs, Ts);
-            output << "[" << link->getName() << "]" << std::endl;
-            output << "Buoyancy force[N]: " << Fb.x() << ", " << Fb.y() << ", " << Fb.z() << std::endl;
-            output << "Damping force[N]: " << Fd.x() << ", " << Fd.y() << ", " << Fd.z() << std::endl;
-            output << "Skin friction[N]: " << Fs.x() << ", " << Fs.y() << ", " << Fs.z() << std::endl;
-        }
-        return output.str();
-    };
-
     for(size_t i=0; i<rosRobots_.size(); ++i)
     {
-        Robot* r = rosRobots_[i]->robot_;
-        RCLCPP_DEBUG_STREAM(nh_->get_logger(), "===== Hydrodynamics for " << r->getName() << " =====\n" << hydroLambda(r));
+        if(pubs_.find(rosRobots_[i]->robot_->getName() + "/debug/physics") != pubs_.end())
+        {
+            Robot* r = rosRobots_[i]->robot_;
+            size_t lID = 0;
+            SolidEntity* link;
+            stonefish_ros2::msg::DebugPhysics msg;
+            msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+            
+            auto debugPub = std::static_pointer_cast<rclcpp::Publisher<stonefish_ros2::msg::DebugPhysics>>(
+                pubs_.at(r->getName() + "/debug/physics")
+            );
+
+            while((link = r->getLink(lID++)) != nullptr)
+            {
+                msg.header.frame_id = link->getName();
+                
+                msg.mass = link->getMass();
+                msg.volume = link->getVolume();
+                msg.surface = link->getSurface();
+                Vector3 inertia = link->getInertia();
+                msg.inertia.x = inertia.getX();
+                msg.inertia.y = inertia.getY();
+                msg.inertia.z = inertia.getZ();
+
+                Vector3 cog = -link->getCG2OTransform().getOrigin();
+                msg.cog.x = cog.getX();
+                msg.cog.y = cog.getY();
+                msg.cog.z = cog.getZ();
+                
+                Vector3 cob = link->getCG2OTransform() * link->getCB();
+                msg.cob.x = cob.getX();
+                msg.cob.y = cob.getY();
+                msg.cob.z = cob.getZ();
+                
+                Matrix3 toOrigin = link->getOTransform().getBasis().inverse();
+
+                Vector3 vel = toOrigin * link->getLinearVelocity();
+                Vector3 avel = toOrigin * link->getAngularVelocity();
+                msg.velocity.linear.x = vel.getX();
+                msg.velocity.linear.y = vel.getY();
+                msg.velocity.linear.z = vel.getZ();
+                msg.velocity.angular.x = avel.getX();
+                msg.velocity.angular.y = avel.getY();
+                msg.velocity.angular.z = avel.getZ();
+
+                Vector3 Fb, Tb, Fd, Td, Fs, Ts;
+                link->getHydrodynamicForces(Fb, Tb, Fd, Td, Fs, Ts);            
+
+                // Fb = toOrigin * Fb;
+                // Tb = toOrigin * Tb;
+                msg.buoyancy.force.x = Fb.getX();
+                msg.buoyancy.force.y = Fb.getY();
+                msg.buoyancy.force.z = Fb.getZ();
+                msg.buoyancy.torque.x = Tb.getX();
+                msg.buoyancy.torque.y = Tb.getY();
+                msg.buoyancy.torque.z = Tb.getZ();
+
+                Fd = toOrigin * Fd;
+                Td = toOrigin * Td;
+                msg.damping.force.x = Fd.getX();
+                msg.damping.force.y = Fd.getY();
+                msg.damping.force.z = Fd.getZ();
+                msg.damping.torque.x = Td.getX();
+                msg.damping.torque.y = Td.getY();
+                msg.damping.torque.z = Td.getZ();
+
+                Fs = toOrigin * Fs;
+                Ts = toOrigin * Ts;
+                msg.skin_friction.force.x = Fs.getX();
+                msg.skin_friction.force.y = Fs.getY();
+                msg.skin_friction.force.z = Fs.getZ();
+                msg.skin_friction.torque.x = Ts.getX();
+                msg.skin_friction.torque.y = Ts.getY();
+                msg.skin_friction.torque.z = Ts.getZ();
+
+                msg.wetted_surface = link->getWettedSurface();
+                
+                debugPub->publish(msg);
+            }
+        }
     }
 }
 

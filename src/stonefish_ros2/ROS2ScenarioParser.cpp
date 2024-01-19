@@ -51,6 +51,7 @@
 #include "stonefish_ros2/msg/dvl.hpp"
 #include "stonefish_ros2/msg/ins.hpp"
 #include "stonefish_ros2/msg/thruster_state.hpp"
+#include "stonefish_ros2/msg/debug_physics.hpp"
 #include "stonefish_ros2/srv/sonar_settings.hpp"
 #include "stonefish_ros2/srv/sonar_settings2.hpp"
 #include "image_transport/image_transport.hpp"
@@ -279,6 +280,14 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
     XMLElement* item;
     if((item = element->FirstChildElement("ros_base_link_transforms")) != nullptr)
         item->QueryBoolAttribute("publish", &rosRobot->publishBaseLinkTransform_);
+
+    //Check if we should publish debug information
+    if((item = element->FirstChildElement("ros_debug")) != nullptr)
+    {
+        const char* topicPhysics = nullptr;
+        if(item->QueryStringAttribute("physics", &topicPhysics) == XML_SUCCESS)
+            pubs[robot->getName() + "/debug/physics"] = nh_->create_publisher<stonefish_ros2::msg::DebugPhysics>(std::string(topicPhysics), 10);
+    }
 
     //Save robot
     sim->AddROS2Robot(rosRobot);

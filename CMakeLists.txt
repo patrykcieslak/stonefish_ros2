@@ -33,6 +33,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DVLBeam.msg"
   "msg/DVL.msg"
   "msg/ThrusterState.msg"
+  "msg/DebugPhysics.msg"
   "srv/SonarSettings.srv"
   "srv/SonarSettings2.srv"
   DEPENDENCIES std_msgs std_srvs geometry_msgs
