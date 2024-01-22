@@ -512,7 +512,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                 msg.velocity.angular.y = avel.getY();
                 msg.velocity.angular.z = avel.getZ();
 
-                Vector3 Fb, Tb, Fd, Td, Ff, Ts;
+                Vector3 Fb, Tb, Fd, Td, Ff, Tf;
                 link->getHydrodynamicForces(Fb, Tb, Fd, Td, Ff, Tf);            
                 Vector3 Cd, Cf;
                 link->getHydrodynamicCoefficients(Cd, Cf);
@@ -723,6 +723,17 @@ void ROS2SimulationManager::SuctionCupService(const std_srvs::srv::SetBool::Requ
     else 
         res->message = "Pump turned off.";
     res->success = true;
+}
+
+void ROS2SimulationManager::SensorService(const std_srvs::srv::SetBool::Request::SharedPtr req,
+                                        std_srvs::srv::SetBool::Response::SharedPtr res, Sensor* sens)
+{
+    sens->setEnabled(req->data);
+    if(req->data)
+        res->message = "Sensor turned on.";
+    else
+        res->message = "Sensor turned off.";
+    res->success = true;    
 }
 
 void ROS2SimulationManager::SensorOriginCallback(const geometry_msgs::msg::Transform::SharedPtr msg, Sensor* sens)

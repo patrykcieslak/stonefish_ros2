@@ -116,6 +116,8 @@ namespace sf
         void VBSCallback(const std_msgs::msg::Float64::SharedPtr msg, VariableBuoyancy* act);
         void SuctionCupService(const std_srvs::srv::SetBool::Request::SharedPtr req,
                             std_srvs::srv::SetBool::Response::SharedPtr res, SuctionCup* suction);
+        void SensorService(const std_srvs::srv::SetBool::Request::SharedPtr req,
+                            std_srvs::srv::SetBool::Response::SharedPtr res, Sensor* sens);                    
         void SensorOriginCallback(const geometry_msgs::msg::Transform::SharedPtr msg, Sensor* sens);
         void FLSService(const stonefish_ros2::srv::SonarSettings::Request::SharedPtr req,
                         stonefish_ros2::srv::SonarSettings::Response::SharedPtr res, FLS* fls);

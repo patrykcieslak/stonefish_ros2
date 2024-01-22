@@ -577,13 +577,28 @@ Sensor* ROS2ScenarioParser::ParseSensor(XMLElement* element, const std::string& 
         std::string sensorName = sens->getName();
         XMLElement* item;
         const char* topic = nullptr;
+
+        //Standard sensor publisher
         if((item = element->FirstChildElement("ros_publisher")) == nullptr
             || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
         {
             return sens;
         }
-
         std::string topicStr(topic);
+
+        //Sensor enable/disable service
+        const char* serviceTopic = nullptr;
+        XMLElement* item2; // item is used below so we need a new pointer
+        if((item2 = element->FirstChildElement("ros_service")) != nullptr
+            && item2->QueryStringAttribute("set_enabled", &serviceTopic) == XML_SUCCESS)
+        {
+            std::string serviceTopicStr(serviceTopic);
+            std::function<void(const std_srvs::srv::SetBool::Request::SharedPtr req, 
+                            std_srvs::srv::SetBool::Response::SharedPtr res)> callbackFunc =
+                            std::bind(&ROS2SimulationManager::SensorService, sim, _1, _2, sens);
+            srvs[sensorName] = nh_->create_service<std_srvs::srv::SetBool>(serviceTopicStr, callbackFunc);
+        }
+
         unsigned int queueSize = (unsigned int)ceil(sens->getUpdateFrequency());
 
         //Generate publishers for different sensor types
