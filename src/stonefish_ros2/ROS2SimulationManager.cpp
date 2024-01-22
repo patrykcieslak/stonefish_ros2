@@ -512,8 +512,16 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                 msg.velocity.angular.y = avel.getY();
                 msg.velocity.angular.z = avel.getZ();
 
-                Vector3 Fb, Tb, Fd, Td, Fs, Ts;
-                link->getHydrodynamicForces(Fb, Tb, Fd, Td, Fs, Ts);            
+                Vector3 Fb, Tb, Fd, Td, Ff, Ts;
+                link->getHydrodynamicForces(Fb, Tb, Fd, Td, Ff, Tf);            
+                Vector3 Cd, Cf;
+                link->getHydrodynamicCoefficients(Cd, Cf);
+                msg.damping_coeff.x = Cd.getX();
+                msg.damping_coeff.y = Cd.getY();
+                msg.damping_coeff.z = Cd.getZ();
+                msg.skin_friction_coeff.x = Cf.getX();
+                msg.skin_friction_coeff.y = Cf.getY();
+                msg.skin_friction_coeff.z = Cf.getZ();
 
                 // Fb = toOrigin * Fb;
                 // Tb = toOrigin * Tb;
@@ -533,14 +541,14 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                 msg.damping.torque.y = Td.getY();
                 msg.damping.torque.z = Td.getZ();
 
-                Fs = toOrigin * Fs;
-                Ts = toOrigin * Ts;
-                msg.skin_friction.force.x = Fs.getX();
-                msg.skin_friction.force.y = Fs.getY();
-                msg.skin_friction.force.z = Fs.getZ();
-                msg.skin_friction.torque.x = Ts.getX();
-                msg.skin_friction.torque.y = Ts.getY();
-                msg.skin_friction.torque.z = Ts.getZ();
+                Ff = toOrigin * Ff;
+                Tf = toOrigin * Tf;
+                msg.skin_friction.force.x = Ff.getX();
+                msg.skin_friction.force.y = Ff.getY();
+                msg.skin_friction.force.z = Ff.getZ();
+                msg.skin_friction.torque.x = Tf.getX();
+                msg.skin_friction.torque.y = Tf.getY();
+                msg.skin_friction.torque.z = Tf.getZ();
 
                 msg.wetted_surface = link->getWettedSurface();
                 
