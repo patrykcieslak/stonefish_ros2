@@ -18,3 +18,4 @@ geometry_msgs/Wrench damping
 geometry_msgs/Wrench skin_friction
 
 float64 wetted_surface
+float64 submerged_volume

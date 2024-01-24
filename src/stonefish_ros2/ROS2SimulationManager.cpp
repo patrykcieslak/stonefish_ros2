@@ -551,6 +551,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                 msg.skin_friction.torque.z = Tf.getZ();
 
                 msg.wetted_surface = link->getWettedSurface();
+                msg.submerged_volume = link->getSubmergedVolume();
                 
                 debugPub->publish(msg);
             }
