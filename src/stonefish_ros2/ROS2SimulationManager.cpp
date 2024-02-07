@@ -35,6 +35,7 @@
 #include <Stonefish/entities/animation/ManualTrajectory.h>
 #include <Stonefish/entities/forcefields/Uniform.h>
 #include <Stonefish/entities/forcefields/Jet.h>
+#include <Stonefish/joints/Joint.h>
 #include <Stonefish/sensors/scalar/Pressure.h>
 #include <Stonefish/sensors/scalar/DVL.h>
 #include <Stonefish/sensors/scalar/Accelerometer.h>
@@ -925,6 +926,15 @@ void ROS2SimulationManager::JointGroupCallback(const std_msgs::msg::Float64Multi
             RCLCPP_WARN_STREAM(nh_->get_logger(), "Invalid joint name: " << jointNames[i]);
         }
     }
+}
+
+void ROS2SimulationManager::JointBreakService(const std_srvs::srv::Trigger::Request::SharedPtr req, 
+                                                std_srvs::srv::Trigger::Response::SharedPtr res, Joint* j)
+{
+    (void)req;
+    j->RemoveFromSimulation(this);
+    res->message = "Joint '" + j->getName() + "' broken.";
+    res->success = true;
 }
 
 }

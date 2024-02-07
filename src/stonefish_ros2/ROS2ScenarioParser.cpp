@@ -29,6 +29,7 @@
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "std_srvs/srv/set_bool.hpp"
+#include "std_srvs/srv/trigger.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
 #include "visualization_msgs/msg/marker.hpp"
@@ -74,6 +75,7 @@
 #include <Stonefish/sensors/vision/SSS.h>
 #include <Stonefish/sensors/vision/MSIS.h>
 #include <Stonefish/comms/Comm.h>
+#include <Stonefish/joints/FixedJoint.h>
 
 using namespace std::placeholders;
 
@@ -900,5 +902,28 @@ bool ROS2ScenarioParser::ParseContact(XMLElement* element)
 
     return true;
 }
+
+FixedJoint* ROS2ScenarioParser::ParseGlue(XMLElement* element)
+{
+    FixedJoint* glue = ScenarioParser::ParseGlue(element);
+    if(glue != nullptr)
+    {
+        XMLElement* item;
+        const char* topic = nullptr;
+        if((item = element->FirstChildElement("ros_service")) == nullptr
+            || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
+        {
+            return glue;
+        }
+
+        ROS2SimulationManager* sim = (ROS2SimulationManager*)getSimulationManager();
+        std::map<std::string, rclcpp::ServiceBase::SharedPtr>& srvs = sim->getServices();
+        std::function<void(const std_srvs::srv::Trigger::Request::SharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr res)> callbackFunc =
+            std::bind(&ROS2SimulationManager::JointBreakService, sim, _1, _2, glue);
+        srvs[glue->getName()] = nh_->create_service<std_srvs::srv::Trigger>(std::string(topic), callbackFunc);
+    }
+    return glue;
+}
+
 
 }
