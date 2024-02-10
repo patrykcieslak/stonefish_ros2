@@ -599,6 +599,7 @@ Sensor* ROS2ScenarioParser::ParseSensor(XMLElement* element, const std::string& 
                             std_srvs::srv::SetBool::Response::SharedPtr res)> callbackFunc =
                             std::bind(&ROS2SimulationManager::SensorService, sim, _1, _2, sens);
             srvs[sensorName] = nh_->create_service<std_srvs::srv::SetBool>(serviceTopicStr, callbackFunc);
+            sens->setEnabled(false); // Sensor with an enable service starts as disabled
         }
 
         unsigned int queueSize = (unsigned int)ceil(sens->getUpdateFrequency());
