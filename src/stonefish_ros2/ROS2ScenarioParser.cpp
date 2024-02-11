@@ -280,7 +280,7 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
 
     //Check if we should publish world_ned -> base_link transform
     XMLElement* item;
-    if((item = element->FirstChildElement("ros_base_link_transforms")) != nullptr)
+    if((item = element->FirstChildElement("ros_base_link_transform")) != nullptr)
         item->QueryBoolAttribute("publish", &rosRobot->publishBaseLinkTransform_);
 
     //Check if we should publish debug information
