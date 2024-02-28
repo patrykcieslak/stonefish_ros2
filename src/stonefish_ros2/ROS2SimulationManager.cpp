@@ -31,6 +31,7 @@
 #include "stonefish_ros2/msg/debug_physics.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "geometry_msgs/msg/wrench_stamped.hpp"
 
 #include <Stonefish/entities/animation/ManualTrajectory.h>
 #include <Stonefish/entities/forcefields/Uniform.h>
@@ -326,7 +327,6 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
         {
             unsigned int aID = 0;
             Actuator* actuator;
-            Servo* srv;
             sensor_msgs::msg::JointState msg;
             msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
             msg.header.frame_id = rosRobots_[i]->robot_->getName();
@@ -335,7 +335,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
             {
                 if(actuator->getType() == ActuatorType::SERVO)
                 {
-                    srv = (Servo*)actuator;
+                    Servo* srv = (Servo*)actuator;
                     msg.name.push_back(srv->getJointName());
                     msg.position.push_back(srv->getPosition());
                     msg.velocity.push_back(srv->getVelocity());
@@ -345,6 +345,31 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
             if(msg.name.size() > 0)
                 std::static_pointer_cast<rclcpp::Publisher<sensor_msgs::msg::JointState>>(
                     pubs_.at(rosRobots_[i]->robot_->getName() + "/servos")
+                )->publish(msg);
+        }
+
+        if(pubs_.find(rosRobots_[i]->robot_->getName() + "/rudders") != pubs_.end())
+        {
+            unsigned int aID = 0;
+            Actuator* actuator;
+            sensor_msgs::msg::JointState msg;
+            msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+            msg.header.frame_id = rosRobots_[i]->robot_->getName();
+            
+            while((actuator = rosRobots_[i]->robot_->getActuator(aID++)) != nullptr)
+            {
+                if(actuator->getType() == ActuatorType::RUDDER)
+                {
+                    Rudder* rudder = (Rudder*)actuator;
+                    msg.name.push_back(rudder->getName());
+                    msg.position.push_back(rudder->getSetpoint());
+                    msg.velocity.push_back(0.0);
+                    msg.effort.push_back(0.0);
+                }
+            }
+            if(msg.name.size() > 0)
+                std::static_pointer_cast<rclcpp::Publisher<sensor_msgs::msg::JointState>>(
+                    pubs_.at(rosRobots_[i]->robot_->getName() + "/rudders")
                 )->publish(msg);
         }
 
@@ -398,15 +423,56 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
             switch(actuator->getType())
             {
                 case ActuatorType::PUSH:
-                    ((Push*)actuator)->setForce(rosRobots_[i]->thrusterSetpoints_[thID++]);
+                {
+                    Push* push = (Push*)actuator;    
+                    push->setForce(rosRobots_[i]->thrusterSetpoints_[thID++]);
+
+                    auto it = pubs_.find(actuator->getName());
+                    if(it != pubs_.end())
+                    {
+                        geometry_msgs::msg::WrenchStamped msg;
+                        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+                        msg.header.frame_id = push->getName();
+                        msg.wrench.force.x = push->getForce();
+                        std::static_pointer_cast<rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>>(it->second)->publish(msg);
+                    }
+                }
                     break;
 
                 case ActuatorType::THRUSTER:
-                    ((Thruster*)actuator)->setSetpoint(rosRobots_[i]->thrusterSetpoints_[thID++]);
+                {
+                    Thruster* th = ((Thruster*)actuator);
+                    th->setSetpoint(rosRobots_[i]->thrusterSetpoints_[thID++]);
+                        
+                    auto it = pubs_.find(actuator->getName());
+                    if(it != pubs_.end())
+                    {
+                        geometry_msgs::msg::WrenchStamped msg;
+                        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+                        msg.header.frame_id = th->getName();
+                        msg.wrench.force.x = th->getThrust();
+                        msg.wrench.torque.x = th->getTorque();
+                        std::static_pointer_cast<rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>>(it->second)->publish(msg);
+                    }            
+                }
                     break;
 
                 case ActuatorType::PROPELLER:
-                    ((Propeller*)actuator)->setSetpoint(rosRobots_[i]->propellerSetpoints_[propID++]);
+                {
+                    Propeller* prop = (Propeller*)actuator;
+                    prop->setSetpoint(rosRobots_[i]->propellerSetpoints_[propID++]);
+
+                    auto it = pubs_.find(actuator->getName());
+                    if(it != pubs_.end())
+                    {
+                        geometry_msgs::msg::WrenchStamped msg;
+                        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+                        msg.header.frame_id = prop->getName();
+                        msg.wrench.force.x = prop->getThrust();
+                        msg.wrench.torque.x = prop->getTorque();
+                        std::static_pointer_cast<rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>>(it->second)->publish(msg);
+                    }
+                }
                     break;
 
                 case ActuatorType::RUDDER:

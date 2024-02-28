@@ -413,14 +413,18 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
     //Generate publishers
     if((item = element->FirstChildElement("ros_publisher")) != nullptr)
     {
-        const char* topicThrust = nullptr;
+        const char* topicThr = nullptr;
         const char* topicSrv = nullptr;
+        const char* topicRud = nullptr;
 
-        if(nThrusters > 0 && item->QueryStringAttribute("thrusters", &topicThrust) == XML_SUCCESS)
-            pubs[robot->getName() + "/thrusters"] = nh_->create_publisher<stonefish_ros2::msg::ThrusterState>(std::string(topicThrust), 10);
+        if(nThrusters > 0 && item->QueryStringAttribute("thrusters", &topicThr) == XML_SUCCESS)
+            pubs[robot->getName() + "/thrusters"] = nh_->create_publisher<stonefish_ros2::msg::ThrusterState>(std::string(topicThr), 10);
 
         if(nServos > 0 && item->QueryStringAttribute("servos", &topicSrv) == XML_SUCCESS)
             pubs[robot->getName() + "/servos"] = nh_->create_publisher<sensor_msgs::msg::JointState>(std::string(topicSrv), 10);
+
+        if(nRudders > 0 && item->QueryStringAttribute("rudders", &topicRud) == XML_SUCCESS)
+            pubs[robot->getName() + "/rudders"] = nh_->create_publisher<sensor_msgs::msg::JointState>(std::string(topicRud), 10);
     }
 
     return true;
@@ -494,6 +498,19 @@ Actuator* ROS2ScenarioParser::ParseActuator(XMLElement* element, const std::stri
         //Actuator specific handling
         switch(act->getType())
         {
+            case ActuatorType::THRUSTER:
+            case ActuatorType::PROPELLER:
+            case ActuatorType::PUSH:
+            {
+                const char* pubTopic = nullptr;
+                if((item = element->FirstChildElement("ros_publisher")) != nullptr
+                    && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
+                {
+                    pubs[actuatorName] = nh_->create_publisher<geometry_msgs::msg::WrenchStamped>(std::string(pubTopic), 10);
+                }
+            }
+                break;
+
             case ActuatorType::VBS:
             {
                 const char* pubTopic = nullptr;
@@ -540,6 +557,7 @@ Actuator* ROS2ScenarioParser::ParseActuator(XMLElement* element, const std::stri
         {
             case ActuatorType::THRUSTER:
             case ActuatorType::PROPELLER:
+            case ActuatorType::PUSH:
             case ActuatorType::VBS:
             {
                 const char* originTopic = nullptr;
