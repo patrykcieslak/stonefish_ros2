@@ -20,7 +20,7 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 02/10/23.
-//  Copyright (c) 2023 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2024 Patryk Cieslak. All rights reserved.
 //
 
 #ifndef __Stonefish_ROS2SimulationManager__
@@ -51,6 +51,9 @@ namespace sf
     class Uniform;
     class Jet;
     class ManualTrajectory;
+    class Thruster;
+    class Propeller;
+    class Push;
     class VariableBuoyancy;
     class SuctionCup;
     class ColorCamera;
@@ -69,6 +72,9 @@ namespace sf
 		std::vector<Scalar> propellerSetpoints_;
 		std::vector<Scalar> rudderSetpoints_;
 		std::map<std::string, std::pair<ServoControlMode, Scalar>> servoSetpoints_;
+        bool thrusterSetpointsChanged_;
+        bool propellerSetpointsChanged_;
+        bool rudderSetpointsChanged_;
 
 		ROS2Robot(Robot* robot, unsigned int nThrusters, unsigned int nPropellers, unsigned int nRudders=0)
 			: robot_(robot), publishBaseLinkTransform_(false)
@@ -76,6 +82,9 @@ namespace sf
 			thrusterSetpoints_ = std::vector<Scalar>(nThrusters, Scalar(0));
 			propellerSetpoints_ = std::vector<Scalar>(nPropellers, Scalar(0));
 			rudderSetpoints_ = std::vector<Scalar>(nRudders, Scalar(0));
+            thrusterSetpointsChanged_ = false;
+            propellerSetpointsChanged_ = false;
+            rudderSetpointsChanged_ = false;
 		};
 	};
 
@@ -114,6 +123,9 @@ namespace sf
         void JetVFCallback(const std_msgs::msg::Float64::SharedPtr msg, Jet* vf);
         void ActuatorOriginCallback(const geometry_msgs::msg::Transform::SharedPtr msg, Actuator* act);
         void TrajectoryCallback(const nav_msgs::msg::Odometry::SharedPtr msg, ManualTrajectory* tr);
+        void PushCallback(const std_msgs::msg::Float64::SharedPtr msg, Push* push);
+        void ThrusterCallback(const std_msgs::msg::Float64::SharedPtr msg, Thruster* th);
+        void PropellerCallback(const std_msgs::msg::Float64::SharedPtr msg, Propeller* prop);
         void VBSCallback(const std_msgs::msg::Float64::SharedPtr msg, VariableBuoyancy* act);
         void SuctionCupService(const std_srvs::srv::SetBool::Request::SharedPtr req,
                             std_srvs::srv::SetBool::Response::SharedPtr res, SuctionCup* suction);
@@ -126,10 +138,12 @@ namespace sf
                         stonefish_ros2::srv::SonarSettings::Response::SharedPtr res, SSS* sss);
         void MSISService(const stonefish_ros2::srv::SonarSettings2::Request::SharedPtr req,
                         stonefish_ros2::srv::SonarSettings2::Response::SharedPtr res, MSIS* msis);
+        
         void ThrustersCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg, std::shared_ptr<ROS2Robot> robot);
         void PropellersCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg, std::shared_ptr<ROS2Robot> robot);
         void RuddersCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg, std::shared_ptr<ROS2Robot> robot);
         void ServosCallback(const sensor_msgs::msg::JointState::SharedPtr msg, std::shared_ptr<ROS2Robot> robot);
+        
         void JointCallback(const std_msgs::msg::Float64::SharedPtr msg,  std::shared_ptr<ROS2Robot> robot, 
                                                             ServoControlMode mode, const std::string& jointName);
         void JointGroupCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg,  std::shared_ptr<ROS2Robot> robot, 

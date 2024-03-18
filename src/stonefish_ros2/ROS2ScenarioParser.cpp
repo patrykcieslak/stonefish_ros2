@@ -65,6 +65,8 @@
 #include <Stonefish/actuators/Actuator.h>
 #include <Stonefish/actuators/Light.h>
 #include <Stonefish/actuators/Servo.h>
+#include <Stonefish/actuators/Thruster.h>
+#include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/VariableBuoyancy.h>
 #include <Stonefish/actuators/SuctionCup.h>
 #include <Stonefish/sensors/ScalarSensor.h>
@@ -499,9 +501,56 @@ Actuator* ROS2ScenarioParser::ParseActuator(XMLElement* element, const std::stri
         switch(act->getType())
         {
             case ActuatorType::THRUSTER:
+            {
+                const char* subTopic = nullptr;
+                if((item = element->FirstChildElement("ros_subscriber")) != nullptr
+                    && item->QueryStringAttribute("topic", &subTopic) == XML_SUCCESS)
+                {
+                    std::function<void(const std_msgs::msg::Float64::SharedPtr msg)> callbackFunc =
+                        std::bind(&ROS2SimulationManager::ThrusterCallback, sim, _1, (Thruster*)act);     
+                    subs[actuatorName] = nh_->create_subscription<std_msgs::msg::Float64>(std::string(subTopic), 10, callbackFunc);
+                }
+
+                const char* pubTopic = nullptr;
+                if((item = element->FirstChildElement("ros_publisher")) != nullptr
+                    && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
+                {
+                    pubs[actuatorName] = nh_->create_publisher<geometry_msgs::msg::WrenchStamped>(std::string(pubTopic), 10);
+                }
+            }
+                break;
+
             case ActuatorType::PROPELLER:
+            {
+                const char* subTopic = nullptr;
+                if((item = element->FirstChildElement("ros_subscriber")) != nullptr
+                    && item->QueryStringAttribute("topic", &subTopic) == XML_SUCCESS)
+                {
+                    std::function<void(const std_msgs::msg::Float64::SharedPtr msg)> callbackFunc =
+                        std::bind(&ROS2SimulationManager::PropellerCallback, sim, _1, (Propeller*)act);     
+                    subs[actuatorName] = nh_->create_subscription<std_msgs::msg::Float64>(std::string(subTopic), 10, callbackFunc);
+                }
+
+                const char* pubTopic = nullptr;
+                if((item = element->FirstChildElement("ros_publisher")) != nullptr
+                    && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
+                {
+                    pubs[actuatorName] = nh_->create_publisher<geometry_msgs::msg::WrenchStamped>(std::string(pubTopic), 10);
+                }
+            }
+                break;
+
             case ActuatorType::PUSH:
             {
+                const char* subTopic = nullptr;
+                if((item = element->FirstChildElement("ros_subscriber")) != nullptr
+                    && item->QueryStringAttribute("topic", &subTopic) == XML_SUCCESS)
+                {
+                    std::function<void(const std_msgs::msg::Float64::SharedPtr msg)> callbackFunc =
+                        std::bind(&ROS2SimulationManager::PushCallback, sim, _1, (Push*)act);     
+                    subs[actuatorName] = nh_->create_subscription<std_msgs::msg::Float64>(std::string(subTopic), 10, callbackFunc);
+                }
+
                 const char* pubTopic = nullptr;
                 if((item = element->FirstChildElement("ros_publisher")) != nullptr
                     && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)

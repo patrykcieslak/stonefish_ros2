@@ -20,7 +20,7 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 02/10/23.
-//  Copyright (c) 2023 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2024 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros2/ROS2SimulationManager.h"
@@ -425,7 +425,10 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                 case ActuatorType::PUSH:
                 {
                     Push* push = (Push*)actuator;    
-                    push->setForce(rosRobots_[i]->thrusterSetpoints_[thID++]);
+                    if(rosRobots_[i]->thrusterSetpointsChanged_)
+                    {
+                        push->setForce(rosRobots_[i]->thrusterSetpoints_[thID++]);
+                    }
 
                     auto it = pubs_.find(actuator->getName());
                     if(it != pubs_.end())
@@ -442,7 +445,10 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                 case ActuatorType::THRUSTER:
                 {
                     Thruster* th = ((Thruster*)actuator);
-                    th->setSetpoint(rosRobots_[i]->thrusterSetpoints_[thID++]);
+                    if(rosRobots_[i]->thrusterSetpointsChanged_)
+                    {
+                        th->setSetpoint(rosRobots_[i]->thrusterSetpoints_[thID++]);
+                    }
                         
                     auto it = pubs_.find(actuator->getName());
                     if(it != pubs_.end())
@@ -460,7 +466,10 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                 case ActuatorType::PROPELLER:
                 {
                     Propeller* prop = (Propeller*)actuator;
-                    prop->setSetpoint(rosRobots_[i]->propellerSetpoints_[propID++]);
+                    if(rosRobots_[i]->propellerSetpointsChanged_)
+                    {
+                        prop->setSetpoint(rosRobots_[i]->propellerSetpoints_[propID++]);
+                    }
 
                     auto it = pubs_.find(actuator->getName());
                     if(it != pubs_.end())
@@ -476,7 +485,12 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                     break;
 
                 case ActuatorType::RUDDER:
-                    ((Rudder*)actuator)->setSetpoint(rosRobots_[i]->rudderSetpoints_[rudderID++]);
+                {
+                    if(rosRobots_[i]->rudderSetpointsChanged_)
+                    {
+                        ((Rudder*)actuator)->setSetpoint(rosRobots_[i]->rudderSetpoints_[rudderID++]);
+                    }
+                }
                     break;
 
                 case ActuatorType::SERVO:
@@ -529,6 +543,10 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                     break;
             }
         }
+        //Reset change flags
+        rosRobots_[i]->thrusterSetpointsChanged_ = false;
+        rosRobots_[i]->propellerSetpointsChanged_ = false;
+        rosRobots_[i]->rudderSetpointsChanged_ = false;
     }
 
     /////////////////////////////////// DEBUG //////////////////////////////////////////
@@ -777,6 +795,21 @@ void ROS2SimulationManager::TrajectoryCallback(const nav_msgs::msg::Odometry::Sh
     tr->setAngularVelocity(omega);
 }
 
+void ROS2SimulationManager::ThrusterCallback(const std_msgs::msg::Float64::SharedPtr msg, Thruster* th)
+{
+    th->setSetpoint(msg->data);
+}
+
+void ROS2SimulationManager::PropellerCallback(const std_msgs::msg::Float64::SharedPtr msg, Propeller* prop)
+{
+    prop->setSetpoint(msg->data);
+}
+
+void ROS2SimulationManager::PushCallback(const std_msgs::msg::Float64::SharedPtr msg, Push* push)
+{
+    push->setForce(msg->data);
+}
+
 void ROS2SimulationManager::VBSCallback(const std_msgs::msg::Float64::SharedPtr msg, VariableBuoyancy* act)
 {
     act->setFlowRate(msg->data);
@@ -894,6 +927,7 @@ void ROS2SimulationManager::ThrustersCallback(const std_msgs::msg::Float64MultiA
     }
     for(size_t i=0; i<robot->thrusterSetpoints_.size(); ++i)
         robot->thrusterSetpoints_[i] = msg->data[i];
+    robot->thrusterSetpointsChanged_ = true;
 }
 
 void ROS2SimulationManager::PropellersCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg, std::shared_ptr<ROS2Robot> robot)
@@ -905,6 +939,7 @@ void ROS2SimulationManager::PropellersCallback(const std_msgs::msg::Float64Multi
     }
     for(size_t i=0; i<robot->propellerSetpoints_.size(); ++i)
         robot->propellerSetpoints_[i] = msg->data[i];
+    robot->propellerSetpointsChanged_ = true;
 }
 
 void ROS2SimulationManager::RuddersCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg, std::shared_ptr<ROS2Robot> robot)
@@ -916,6 +951,7 @@ void ROS2SimulationManager::RuddersCallback(const std_msgs::msg::Float64MultiArr
     }
     for(size_t i=0; i<robot->rudderSetpoints_.size(); ++i)
         robot->rudderSetpoints_[i] = msg->data[i];
+    robot->rudderSetpointsChanged_ = true;
 }
 
 void ROS2SimulationManager::ServosCallback(const sensor_msgs::msg::JointState::SharedPtr msg, std::shared_ptr<ROS2Robot> robot)
