@@ -51,6 +51,7 @@ namespace sf
     class Uniform;
     class Jet;
     class ManualTrajectory;
+    class SimpleThruster;
     class Thruster;
     class Propeller;
     class Push;
@@ -124,6 +125,7 @@ namespace sf
         void ActuatorOriginCallback(const geometry_msgs::msg::Transform::SharedPtr msg, Actuator* act);
         void TrajectoryCallback(const nav_msgs::msg::Odometry::SharedPtr msg, ManualTrajectory* tr);
         void PushCallback(const std_msgs::msg::Float64::SharedPtr msg, Push* push);
+        void SimpleThrusterCallback(const std_msgs::msg::Float64::SharedPtr msg, SimpleThruster* th);
         void ThrusterCallback(const std_msgs::msg::Float64::SharedPtr msg, Thruster* th);
         void PropellerCallback(const std_msgs::msg::Float64::SharedPtr msg, Propeller* prop);
         void VBSCallback(const std_msgs::msg::Float64::SharedPtr msg, VariableBuoyancy* act);

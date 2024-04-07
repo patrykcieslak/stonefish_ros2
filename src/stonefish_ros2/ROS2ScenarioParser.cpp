@@ -65,6 +65,7 @@
 #include <Stonefish/actuators/Actuator.h>
 #include <Stonefish/actuators/Light.h>
 #include <Stonefish/actuators/Servo.h>
+#include <Stonefish/actuators/SimpleThruster.h>
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/VariableBuoyancy.h>
@@ -256,6 +257,7 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
     {
         switch(act->getType())
         {
+            case ActuatorType::SIMPLE_THRUSTER:
             case ActuatorType::THRUSTER:
             case ActuatorType::PUSH:
                 ++nThrusters;
@@ -500,6 +502,32 @@ Actuator* ROS2ScenarioParser::ParseActuator(XMLElement* element, const std::stri
         //Actuator specific handling
         switch(act->getType())
         {
+            case ActuatorType::SIMPLE_THRUSTER:
+            {
+                const char* subTopic = nullptr;
+                if((item = element->FirstChildElement("ros_subscriber")) != nullptr
+                    && item->QueryStringAttribute("topic", &subTopic) == XML_SUCCESS)
+                {
+                    std::function<void(const std_msgs::msg::Float64::SharedPtr msg)> callbackFunc =
+                        std::bind(&ROS2SimulationManager::SimpleThrusterCallback, sim, _1, (SimpleThruster*)act);     
+                    subs[actuatorName] = nh_->create_subscription<std_msgs::msg::Float64>(std::string(subTopic), 10, callbackFunc);
+                }
+
+                const char* pubTopic = nullptr;
+                if((item = element->FirstChildElement("ros_publisher")) != nullptr)
+                {
+                    if(item->QueryStringAttribute("wrench_topic", &pubTopic) == XML_SUCCESS)
+                    {
+                        pubs[actuatorName+"/wrench"] = nh_->create_publisher<geometry_msgs::msg::WrenchStamped>(std::string(pubTopic), 10);
+                    }
+                    if(item->QueryStringAttribute("joint_state_topic", &pubTopic) == XML_SUCCESS)
+                    {
+                        pubs[actuatorName+"/joint_state"] = nh_->create_publisher<sensor_msgs::msg::JointState>(std::string(pubTopic), 10);
+                    }
+                }
+            }
+                break;
+
             case ActuatorType::THRUSTER:
             {
                 const char* subTopic = nullptr;
@@ -512,10 +540,16 @@ Actuator* ROS2ScenarioParser::ParseActuator(XMLElement* element, const std::stri
                 }
 
                 const char* pubTopic = nullptr;
-                if((item = element->FirstChildElement("ros_publisher")) != nullptr
-                    && item->QueryStringAttribute("topic", &pubTopic) == XML_SUCCESS)
+                if((item = element->FirstChildElement("ros_publisher")) != nullptr)
                 {
-                    pubs[actuatorName] = nh_->create_publisher<geometry_msgs::msg::WrenchStamped>(std::string(pubTopic), 10);
+                    if(item->QueryStringAttribute("wrench_topic", &pubTopic) == XML_SUCCESS)
+                    {
+                        pubs[actuatorName+"/wrench"] = nh_->create_publisher<geometry_msgs::msg::WrenchStamped>(std::string(pubTopic), 10);
+                    }
+                    if(item->QueryStringAttribute("joint_state_topic", &pubTopic) == XML_SUCCESS)
+                    {
+                        pubs[actuatorName+"/joint_state"] = nh_->create_publisher<sensor_msgs::msg::JointState>(std::string(pubTopic), 10);
+                    }
                 }
             }
                 break;

@@ -56,6 +56,7 @@
 #include <Stonefish/sensors/Contact.h>
 #include <Stonefish/comms/USBL.h>
 #include <Stonefish/actuators/Push.h>
+#include <Stonefish/actuators/SimpleThruster.h>
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Rudder.h>
@@ -442,15 +443,15 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                 }
                     break;
 
-                case ActuatorType::THRUSTER:
+                case ActuatorType::SIMPLE_THRUSTER:
                 {
-                    Thruster* th = ((Thruster*)actuator);
+                    SimpleThruster* th = ((SimpleThruster*)actuator);
                     if(rosRobots_[i]->thrusterSetpointsChanged_)
                     {
-                        th->setSetpoint(rosRobots_[i]->thrusterSetpoints_[thID++]);
+                        th->setSetpoint(rosRobots_[i]->thrusterSetpoints_[thID++], Scalar(0));
                     }
                         
-                    auto it = pubs_.find(actuator->getName());
+                    auto it = pubs_.find(actuator->getName()+"/wrench");
                     if(it != pubs_.end())
                     {
                         geometry_msgs::msg::WrenchStamped msg;
@@ -460,6 +461,54 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                         msg.wrench.torque.x = th->getTorque();
                         std::static_pointer_cast<rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>>(it->second)->publish(msg);
                     }            
+
+                    it = pubs_.find(actuator->getName()+"/joint_state");
+                    if(it != pubs_.end())
+                    {
+                        //Publish propeller rotation for visualization
+                        sensor_msgs::msg::JointState msg;
+                        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+                        msg.header.frame_id = th->getName();
+                        msg.name.push_back(th->getName()+"/propeller");
+                        msg.position.push_back(th->getAngle());  
+                        std::static_pointer_cast<rclcpp::Publisher<sensor_msgs::msg::JointState>>(it->second)->publish(msg);
+                    }
+                }
+                    break;
+
+                case ActuatorType::THRUSTER:
+                {
+                    Thruster* th = ((Thruster*)actuator);
+                    if(rosRobots_[i]->thrusterSetpointsChanged_)
+                    {
+                        th->setSetpoint(rosRobots_[i]->thrusterSetpoints_[thID++]);
+                    }
+                        
+                    auto it = pubs_.find(actuator->getName()+"/wrench");
+                    if(it != pubs_.end())
+                    {
+                        geometry_msgs::msg::WrenchStamped msg;
+                        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+                        msg.header.frame_id = th->getName();
+                        msg.wrench.force.x = th->getThrust();
+                        msg.wrench.torque.x = th->getTorque();
+                        std::static_pointer_cast<rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>>(it->second)->publish(msg);
+                    }            
+
+                    it = pubs_.find(actuator->getName()+"/joint_state");
+                    if(it != pubs_.end())
+                    {
+                        //Publish propeller rotation for visualization (slowed down to allow appreciating the direction of rotation)
+                        sensor_msgs::msg::JointState msg;
+                        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+                        msg.header.frame_id = th->getName();
+                        msg.name.push_back(th->getName()+"/propeller");
+                        
+                        Scalar maxRPS = th->getMaxRPM()/Scalar(60);
+                        msg.position.push_back(th->getAngle()/maxRPS);
+                        msg.velocity.push_back(th->getOmega()/maxRPS);
+                        std::static_pointer_cast<rclcpp::Publisher<sensor_msgs::msg::JointState>>(it->second)->publish(msg);
+                    }
                 }
                     break;
 
@@ -763,9 +812,9 @@ void ROS2SimulationManager::JetVFCallback(const std_msgs::msg::Float64::SharedPt
 
 void ROS2SimulationManager::ActuatorOriginCallback(const geometry_msgs::msg::Transform::SharedPtr msg, Actuator* act)
 {
-    sf::Transform T;
-    T.setOrigin(sf::Vector3(msg->translation.x, msg->translation.y, msg->translation.z));
-    T.setRotation(sf::Quaternion(msg->rotation.x, msg->rotation.y, msg->rotation.z, msg->rotation.w));
+    Transform T;
+    T.setOrigin(Vector3(msg->translation.x, msg->translation.y, msg->translation.z));
+    T.setRotation(Quaternion(msg->rotation.x, msg->rotation.y, msg->rotation.z, msg->rotation.w));
 
     switch(act->getType())
     {
@@ -785,14 +834,19 @@ void ROS2SimulationManager::ActuatorOriginCallback(const geometry_msgs::msg::Tra
 
 void ROS2SimulationManager::TrajectoryCallback(const nav_msgs::msg::Odometry::SharedPtr msg, ManualTrajectory* tr)
 {
-    sf::Quaternion q(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y,
+    Quaternion q(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y,
                     msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
-    sf::Vector3 p(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
-    sf::Vector3 v(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z);
-    sf::Vector3 omega(msg->twist.twist.angular.x, msg->twist.twist.angular.y, msg->twist.twist.angular.z);
+    Vector3 p(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
+    Vector3 v(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z);
+    Vector3 omega(msg->twist.twist.angular.x, msg->twist.twist.angular.y, msg->twist.twist.angular.z);
     tr->setTransform(Transform(q, p));
     tr->setLinearVelocity(v);
     tr->setAngularVelocity(omega);
+}
+
+void ROS2SimulationManager::SimpleThrusterCallback(const std_msgs::msg::Float64::SharedPtr msg, SimpleThruster* th)
+{
+    th->setSetpoint(msg->data, Scalar(0));
 }
 
 void ROS2SimulationManager::ThrusterCallback(const std_msgs::msg::Float64::SharedPtr msg, Thruster* th)
@@ -839,9 +893,9 @@ void ROS2SimulationManager::SensorService(const std_srvs::srv::SetBool::Request:
 
 void ROS2SimulationManager::SensorOriginCallback(const geometry_msgs::msg::Transform::SharedPtr msg, Sensor* sens)
 {
-    sf::Transform T;
-    T.setOrigin(sf::Vector3(msg->translation.x, msg->translation.y, msg->translation.z));
-    T.setRotation(sf::Quaternion(msg->rotation.x, msg->rotation.y, msg->rotation.z, msg->rotation.w));
+    Transform T;
+    T.setOrigin(Vector3(msg->translation.x, msg->translation.y, msg->translation.z));
+    T.setRotation(Quaternion(msg->rotation.x, msg->rotation.y, msg->rotation.z, msg->rotation.w));
 
     switch(sens->getType())
     {
