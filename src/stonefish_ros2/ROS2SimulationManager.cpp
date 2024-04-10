@@ -819,6 +819,7 @@ void ROS2SimulationManager::ActuatorOriginCallback(const geometry_msgs::msg::Tra
     switch(act->getType())
     {
         case ActuatorType::PUSH:
+        case ActuatorType::SIMPLE_THRUSTER:
         case ActuatorType::THRUSTER:
         case ActuatorType::PROPELLER:
         case ActuatorType::VBS:

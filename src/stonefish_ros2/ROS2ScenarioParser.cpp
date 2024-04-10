@@ -259,7 +259,6 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
         {
             case ActuatorType::SIMPLE_THRUSTER:
             case ActuatorType::THRUSTER:
-            case ActuatorType::PUSH:
                 ++nThrusters;
                 break;
 
@@ -638,9 +637,10 @@ Actuator* ROS2ScenarioParser::ParseActuator(XMLElement* element, const std::stri
         //Handling of online origin updates
         switch(act->getType())
         {
+            case ActuatorType::PUSH:
+            case ActuatorType::SIMPLE_THRUSTER:
             case ActuatorType::THRUSTER:
             case ActuatorType::PROPELLER:
-            case ActuatorType::PUSH:
             case ActuatorType::VBS:
             {
                 const char* originTopic = nullptr;
