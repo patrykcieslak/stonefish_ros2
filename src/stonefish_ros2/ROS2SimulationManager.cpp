@@ -84,14 +84,14 @@ ROS2SimulationManager::~ROS2SimulationManager()
 
 uint64_t ROS2SimulationManager::getSimulationClock() const
 {
-    rclcpp::Time now = rclcpp::Clock(RCL_ROS_TIME).now();
+    rclcpp::Time now = nh_->get_clock()->now(); // Using nh_->get_clock()->now() is WRONG beacause use_sim_time will not work!
     return now.nanoseconds()/1000;
 }
 
 void ROS2SimulationManager::SimulationClockSleep(uint64_t us)
 {
     rclcpp::Duration duration(0, (uint32_t)us*1000);
-    rclcpp::Clock(RCL_ROS_TIME).sleep_for(duration);
+    nh_->get_clock()->sleep_for(duration);
 }
 
 std::map<std::string, rclcpp::ServiceBase::SharedPtr>& ROS2SimulationManager::getServices()
@@ -134,6 +134,20 @@ void ROS2SimulationManager::AddROS2Robot(const std::shared_ptr<ROS2Robot>& robot
     rosRobots_.push_back(robot);
 }
 
+bool ROS2SimulationManager::RespawnROS2Robot(const std::string& robotName, const Transform& origin)
+{
+    for(size_t i=0; i<rosRobots_.size(); ++i)
+    {
+        if(rosRobots_[i]->robot_->getName() == robotName)
+        {
+            rosRobots_[i]->respawnOrigin_ = origin;
+            rosRobots_[i]->respawnRequested_ = true;
+            return true;
+        }
+    }
+    return false;
+}
+
 void ROS2SimulationManager::BuildScenario()
 {
     // Run parser
@@ -157,6 +171,7 @@ void ROS2SimulationManager::BuildScenario()
     // Standard services
     srvs_["enable_currents"] = nh_->create_service<std_srvs::srv::Trigger>("enable_currents", std::bind(&ROS2SimulationManager::EnableCurrentsService, this, _1, _2));
     srvs_["disable_currents"] = nh_->create_service<std_srvs::srv::Trigger>("disable_currents", std::bind(&ROS2SimulationManager::DisableCurrentsService, this, _1, _2));
+    srvs_["respawn_robot"] = nh_->create_service<stonefish_ros2::srv::Respawn>("respawn_robot", std::bind(&ROS2SimulationManager::RespawnRobotService, this, _1, _2));
 }
 
 void ROS2SimulationManager::DestroyScenario()
@@ -318,9 +333,9 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
     for(size_t i=0; i<rosRobots_.size(); ++i)
     {
         if(rosRobots_[i]->publishBaseLinkTransform_)
-            interface_->PublishTF(tf_, rosRobots_[i]->robot_->getTransform(), rclcpp::Clock(RCL_ROS_TIME).now(), "world_ned", rosRobots_[i]->robot_->getName() + "/base_link");
+            interface_->PublishTF(tf_, rosRobots_[i]->robot_->getTransform(), nh_->get_clock()->now(), "world_ned", rosRobots_[i]->robot_->getName() + "/base_link");
     }
-
+    
     //////////////////////////////////////SERVOS(JOINTS)/////////////////////////////////////////
     for(size_t i=0; i<rosRobots_.size(); ++i)
     {
@@ -329,7 +344,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
             unsigned int aID = 0;
             Actuator* actuator;
             sensor_msgs::msg::JointState msg;
-            msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+            msg.header.stamp = nh_->get_clock()->now();
             msg.header.frame_id = rosRobots_[i]->robot_->getName();
             
             while((actuator = rosRobots_[i]->robot_->getActuator(aID++)) != nullptr)
@@ -354,7 +369,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
             unsigned int aID = 0;
             Actuator* actuator;
             sensor_msgs::msg::JointState msg;
-            msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+            msg.header.stamp = nh_->get_clock()->now();
             msg.header.frame_id = rosRobots_[i]->robot_->getName();
             
             while((actuator = rosRobots_[i]->robot_->getActuator(aID++)) != nullptr)
@@ -382,7 +397,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
             Actuator* actuator;
             Thruster* th;
             stonefish_ros2::msg::ThrusterState msg;
-            msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+            msg.header.stamp = nh_->get_clock()->now();
             msg.header.frame_id = rosRobots_[i]->robot_->getName();
             msg.setpoint.resize(rosRobots_[i]->thrusterSetpoints_.size());
             msg.rpm.resize(rosRobots_[i]->thrusterSetpoints_.size());
@@ -435,7 +450,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                     if(it != pubs_.end())
                     {
                         geometry_msgs::msg::WrenchStamped msg;
-                        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+                        msg.header.stamp = nh_->get_clock()->now();
                         msg.header.frame_id = push->getName();
                         msg.wrench.force.x = push->getForce();
                         std::static_pointer_cast<rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>>(it->second)->publish(msg);
@@ -455,7 +470,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                     if(it != pubs_.end())
                     {
                         geometry_msgs::msg::WrenchStamped msg;
-                        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+                        msg.header.stamp = nh_->get_clock()->now();
                         msg.header.frame_id = th->getName();
                         msg.wrench.force.x = th->getThrust();
                         msg.wrench.torque.x = th->getTorque();
@@ -467,7 +482,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                     {
                         //Publish propeller rotation for visualization
                         sensor_msgs::msg::JointState msg;
-                        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+                        msg.header.stamp = nh_->get_clock()->now();
                         msg.header.frame_id = th->getName();
                         msg.name.push_back(th->getName()+"/propeller");
                         msg.position.push_back(th->getAngle());  
@@ -488,7 +503,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                     if(it != pubs_.end())
                     {
                         geometry_msgs::msg::WrenchStamped msg;
-                        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+                        msg.header.stamp = nh_->get_clock()->now();
                         msg.header.frame_id = th->getName();
                         msg.wrench.force.x = th->getThrust();
                         msg.wrench.torque.x = th->getTorque();
@@ -500,7 +515,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                     {
                         //Publish propeller rotation for visualization (slowed down to allow appreciating the direction of rotation)
                         sensor_msgs::msg::JointState msg;
-                        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+                        msg.header.stamp = nh_->get_clock()->now();
                         msg.header.frame_id = th->getName();
                         msg.name.push_back(th->getName()+"/propeller");
                         
@@ -524,7 +539,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                     if(it != pubs_.end())
                     {
                         geometry_msgs::msg::WrenchStamped msg;
-                        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+                        msg.header.stamp = nh_->get_clock()->now();
                         msg.header.frame_id = prop->getName();
                         msg.wrench.force.x = prop->getThrust();
                         msg.wrench.torque.x = prop->getTorque();
@@ -598,6 +613,16 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
         rosRobots_[i]->rudderSetpointsChanged_ = false;
     }
 
+    /////////////////////////////////// RESPAWN REQUESTS ///////////////////////////////
+    for(size_t i=0; i<rosRobots_.size(); ++i)
+    {
+        if(rosRobots_[i]->respawnRequested_)
+        {
+            rosRobots_[i]->robot_->Respawn(this, rosRobots_[i]->respawnOrigin_);
+            rosRobots_[i]->respawnRequested_ = false;
+        }
+    }    
+
     /////////////////////////////////// DEBUG //////////////////////////////////////////
     for(size_t i=0; i<rosRobots_.size(); ++i)
     {
@@ -607,7 +632,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
             size_t lID = 0;
             SolidEntity* link;
             stonefish_ros2::msg::DebugPhysics msg;
-            msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+            msg.header.stamp = nh_->get_clock()->now();
             
             auto debugPub = std::static_pointer_cast<rclcpp::Publisher<stonefish_ros2::msg::DebugPhysics>>(
                 pubs_.at(r->getName() + "/debug/physics")
@@ -697,7 +722,7 @@ void ROS2SimulationManager::ColorCameraImageReady(ColorCamera* cam)
 {
     //Fill in the image message
     sensor_msgs::msg::Image::SharedPtr img = cameraMsgPrototypes_[cam->getName()].first;
-    img->header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    img->header.stamp = nh_->get_clock()->now();
     memcpy(img->data.data(), (uint8_t*)cam->getImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
@@ -713,7 +738,7 @@ void ROS2SimulationManager::DepthCameraImageReady(DepthCamera* cam)
 {
     //Fill in the image message
     sensor_msgs::msg::Image::SharedPtr img = cameraMsgPrototypes_[cam->getName()].first;
-    img->header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    img->header.stamp = nh_->get_clock()->now();
     memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
@@ -734,7 +759,7 @@ void ROS2SimulationManager::FLSScanReady(FLS* fls)
 {
     //Fill in the data message
     sensor_msgs::msg::Image::SharedPtr img = sonarMsgPrototypes_[fls->getName()].first;
-    img->header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    img->header.stamp = nh_->get_clock()->now();
     memcpy(img->data.data(), (uint8_t*)fls->getImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
@@ -752,7 +777,7 @@ void ROS2SimulationManager::SSSScanReady(SSS* sss)
 {
     //Fill in the data message
     sensor_msgs::msg::Image::SharedPtr img = sonarMsgPrototypes_[sss->getName()].first;
-    img->header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    img->header.stamp = nh_->get_clock()->now();
     memcpy(img->data.data(), (uint8_t*)sss->getImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
@@ -769,7 +794,7 @@ void ROS2SimulationManager::MSISScanReady(MSIS* msis)
 {
     //Fill in the data message
     sensor_msgs::msg::Image::SharedPtr img = sonarMsgPrototypes_[msis->getName()].first;
-    img->header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    img->header.stamp = nh_->get_clock()->now();
     memcpy(img->data.data(), (uint8_t*)msis->getImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
@@ -798,6 +823,25 @@ void ROS2SimulationManager::DisableCurrentsService(const std_srvs::srv::Trigger:
     getOcean()->DisableCurrents();
     res->message = "Ocean current simulation disabled.";
     res->success = true;
+}
+
+void ROS2SimulationManager::RespawnRobotService(const stonefish_ros2::srv::Respawn::Request::SharedPtr req, 
+                             stonefish_ros2::srv::Respawn::Response::SharedPtr res)
+{
+    Vector3 p(req->origin.position.x, req->origin.position.y, req->origin.position.z);
+    Quaternion q(req->origin.orientation.x, req->origin.orientation.y, req->origin.orientation.z, req->origin.orientation.w);
+    Transform origin(q, p);
+    
+    if(RespawnROS2Robot(req->name, origin))
+    {
+        res->message = "Robot respawned.";
+        res->success = true;
+    }
+    else    
+    {
+        res->message = "Robot not found.";
+        res->success= false;
+    }
 }
 
 void ROS2SimulationManager::UniformVFCallback(const geometry_msgs::msg::Vector3::SharedPtr msg, Uniform* vf)

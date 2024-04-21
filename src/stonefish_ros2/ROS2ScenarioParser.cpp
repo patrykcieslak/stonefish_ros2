@@ -448,7 +448,7 @@ bool ROS2ScenarioParser::ParseAnimated(XMLElement* element)
     std::string nameStr(name);
 
     //Get type of trajectory
-    const char* type;
+    const char* type = "";
     XMLElement* item = element->FirstChildElement("trajectory");
     item->QueryStringAttribute("type", &type);
     std::string typeStr(type);

@@ -41,6 +41,7 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "stonefish_ros2/srv/sonar_settings.hpp"
 #include "stonefish_ros2/srv/sonar_settings2.hpp"
+#include "stonefish_ros2/srv/respawn.hpp"
 
 #include <Stonefish/core/SimulationManager.h>
 #include <Stonefish/actuators/Servo.h>
@@ -76,16 +77,16 @@ namespace sf
         bool thrusterSetpointsChanged_;
         bool propellerSetpointsChanged_;
         bool rudderSetpointsChanged_;
+        bool respawnRequested_;
+        Transform respawnOrigin_;
 
 		ROS2Robot(Robot* robot, unsigned int nThrusters, unsigned int nPropellers, unsigned int nRudders=0)
-			: robot_(robot), publishBaseLinkTransform_(false)
+			: robot_(robot), publishBaseLinkTransform_(false), thrusterSetpointsChanged_(false), 
+            propellerSetpointsChanged_(false), rudderSetpointsChanged_(false), respawnRequested_(false)
 		{
 			thrusterSetpoints_ = std::vector<Scalar>(nThrusters, Scalar(0));
 			propellerSetpoints_ = std::vector<Scalar>(nPropellers, Scalar(0));
 			rudderSetpoints_ = std::vector<Scalar>(nRudders, Scalar(0));
-            thrusterSetpointsChanged_ = false;
-            propellerSetpointsChanged_ = false;
-            rudderSetpointsChanged_ = false;
 		};
 	};
 
@@ -106,6 +107,7 @@ namespace sf
 		virtual void MSISScanReady(MSIS* msis);
 
         void AddROS2Robot(const std::shared_ptr<ROS2Robot>& robot);
+        bool RespawnROS2Robot(const std::string& robotName, const Transform& origin);
         void SimulationClockSleep(uint64_t us);
         uint64_t getSimulationClock() const;
         std::map<std::string, rclcpp::ServiceBase::SharedPtr>& getServices();
@@ -120,6 +122,8 @@ namespace sf
                             std_srvs::srv::Trigger::Response::SharedPtr res);
 		void DisableCurrentsService(const std_srvs::srv::Trigger::Request::SharedPtr req, 
                              std_srvs::srv::Trigger::Response::SharedPtr res);
+        void RespawnRobotService(const stonefish_ros2::srv::Respawn::Request::SharedPtr req, 
+                             stonefish_ros2::srv::Respawn::Response::SharedPtr res);
         void UniformVFCallback(const geometry_msgs::msg::Vector3::SharedPtr msg, Uniform* vf);
         void JetVFCallback(const std_msgs::msg::Float64::SharedPtr msg, Jet* vf);
         void ActuatorOriginCallback(const geometry_msgs::msg::Transform::SharedPtr msg, Actuator* act);

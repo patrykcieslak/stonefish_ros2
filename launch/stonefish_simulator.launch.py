@@ -48,6 +48,7 @@ def generate_launch_description():
             name='stonefish_simulator',
             arguments=[simulation_data, scenario_desc, simulation_rate, window_res_x, window_res_y, rendering_quality],
             output='screen',
+            #prefix=['xterm -e gdb -ex run --args']
     )
 
     return LaunchDescription([

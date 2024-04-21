@@ -20,7 +20,7 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 02/10/23.
-//  Copyright (c) 2023 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2024 Patryk Cieslak. All rights reserved.
 //
 
 #include "rclcpp/rclcpp.hpp"
@@ -40,16 +40,14 @@ public:
                            sf::Scalar rate) 
                            : Node("stonefish_simulator")
     {   
-        manager_ = std::shared_ptr<sf::ROS2SimulationManager>(new sf::ROS2SimulationManager(rate, scenarioPath, std::shared_ptr<rclcpp::Node>(this)));
+        sf::ROS2SimulationManager* manager = new sf::ROS2SimulationManager(rate, scenarioPath, std::shared_ptr<rclcpp::Node>(this));
         app_ = std::shared_ptr<sf::ROS2GraphicalSimulationApp>(new sf::ROS2GraphicalSimulationApp("Stonefish Simulator", 
-                                                                                                 dataPath, s, h, 
-                                                                                                 manager_.get()));
+                                                                                                 dataPath, s, h, manager));
         app_->Startup();
         tickTimer_ = this->create_wall_timer(16667us, std::bind(&sf::ROS2GraphicalSimulationApp::Tick, app_));
     };
 
 private:
-    std::shared_ptr<sf::ROS2SimulationManager> manager_;
     std::shared_ptr<sf::ROS2GraphicalSimulationApp> app_;
     rclcpp::TimerBase::SharedPtr tickTimer_;
 };

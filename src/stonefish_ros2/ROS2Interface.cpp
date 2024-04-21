@@ -107,7 +107,7 @@ void ROS2Interface::PublishAccelerometer(rclcpp::PublisherBase::SharedPtr pub, A
                                           acc->getSensorChannelDescription(1).stdDev,
                                           acc->getSensorChannelDescription(2).stdDev);
     geometry_msgs::msg::AccelWithCovarianceStamped msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = acc->getName();
     msg.accel.accel.linear.x = s.getValue(0);
     msg.accel.accel.linear.y = s.getValue(1);
@@ -125,7 +125,7 @@ void ROS2Interface::PublishGyroscope(rclcpp::PublisherBase::SharedPtr pub, Gyros
                                       gyro->getSensorChannelDescription(1).stdDev,
                                       gyro->getSensorChannelDescription(2).stdDev);
     geometry_msgs::msg::TwistWithCovarianceStamped msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = gyro->getName();
     msg.twist.twist.angular.x = s.getValue(0);
     msg.twist.twist.angular.y = s.getValue(1);
@@ -152,7 +152,7 @@ void ROS2Interface::PublishIMU(rclcpp::PublisherBase::SharedPtr pub, IMU* imu) c
                                         imu->getSensorChannelDescription(8).stdDev);
     //Variance is sigma^2!
     sensor_msgs::msg::Imu msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();    
+    msg.header.stamp = nh_->get_clock()->now();    
     msg.header.frame_id = imu->getName();
     msg.orientation.x = quat.x();
     msg.orientation.y = quat.y();
@@ -180,7 +180,7 @@ void ROS2Interface::PublishPressure(rclcpp::PublisherBase::SharedPtr pub, Pressu
 {
     Sample s = press->getLastSample();
     sensor_msgs::msg::FluidPressure msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = press->getName();
     msg.fluid_pressure = s.getValue(0);
     msg.variance = press->getSensorChannelDescription(0).stdDev;
@@ -197,7 +197,7 @@ void ROS2Interface::PublishDVL(rclcpp::PublisherBase::SharedPtr pub, DVL* dvl) c
     vVariance *= vVariance; //Variance is square of standard deviation
     //Publish DVL message
     stonefish_ros2::msg::DVL msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = dvl->getName();
     msg.velocity.x = s.getValue(0);
     msg.velocity.y = s.getValue(1);
@@ -220,7 +220,7 @@ void ROS2Interface::PublishDVLAltitude(rclcpp::PublisherBase::SharedPtr pub, DVL
     sf::Scalar beamAngle = dvl->getBeamAngle();
     //Publish range message
     sensor_msgs::msg::Range msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = dvl->getName() + "_altitude";
     msg.radiation_type = msg.ULTRASOUND;
     msg.field_of_view = beamAngle*2;
@@ -235,7 +235,7 @@ void ROS2Interface::PublishGPS(rclcpp::PublisherBase::SharedPtr pub, GPS* gps) c
     Sample s = gps->getLastSample();
 
     sensor_msgs::msg::NavSatFix msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = gps->getName();
     msg.status.service = msg.status.SERVICE_GPS;
 
@@ -264,7 +264,7 @@ void ROS2Interface::PublishOdometry(rclcpp::PublisherBase::SharedPtr pub, Odomet
 {
     Sample s = odom->getLastSample();
     nav_msgs::msg::Odometry msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = "world_ned";
     msg.child_frame_id = odom->getName();
     msg.pose.pose.position.x = s.getValue(0);
@@ -290,7 +290,7 @@ void ROS2Interface::PublishINS(rclcpp::PublisherBase::SharedPtr pub, INS* ins) c
 
     Sample s = ins->getLastSample();
     stonefish_ros2::msg::INS msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = ins->getName();
     msg.latitude = s.getValue(4);
     msg.longitude = s.getValue(5);
@@ -316,7 +316,7 @@ void ROS2Interface::PublishINSOdometry(rclcpp::PublisherBase::SharedPtr pub, INS
 {
     Sample s = ins->getLastSample();
     nav_msgs::msg::Odometry msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = "world_ned";
     msg.child_frame_id = ins->getName();
     msg.pose.pose.position.x = s.getValue(0);
@@ -340,7 +340,7 @@ void ROS2Interface::PublishForceTorque(rclcpp::PublisherBase::SharedPtr pub, For
 {
     Sample s = ft->getLastSample();    
     geometry_msgs::msg::WrenchStamped msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = ft->getName();
     msg.wrench.force.x = s.getValue(0);
     msg.wrench.force.y = s.getValue(1);
@@ -355,7 +355,7 @@ void ROS2Interface::PublishEncoder(rclcpp::PublisherBase::SharedPtr pub, RotaryE
 {
     Sample s = enc->getLastSample();
     sensor_msgs::msg::JointState msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = enc->getName();
     msg.name.resize(1);
     msg.position.resize(1);
@@ -376,7 +376,7 @@ void ROS2Interface::PublishMultibeam(rclcpp::PublisherBase::SharedPtr pub, Multi
     size_t angSteps = distances.size();
 
     sensor_msgs::msg::LaserScan msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = mb->getName();
     
     msg.angle_min = -angRange/sf::Scalar(2); // start angle of the scan [rad]
@@ -436,7 +436,7 @@ void ROS2Interface::PublishMultibeamPCL(rclcpp::PublisherBase::SharedPtr pub, Mu
     pcl::toPCLPointCloud2(*cloud, pclMsg);
 
     sensor_msgs::msg::PointCloud2 msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = mb->getName();
     pcl_conversions::fromPCL(pclMsg, msg);
     
@@ -456,7 +456,7 @@ void ROS2Interface::PublishProfiler(rclcpp::PublisherBase::SharedPtr pub, Profil
     SensorChannel channel = prof->getSensorChannelDescription(1); // range channel
 
     sensor_msgs::msg::LaserScan msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = prof->getName();
     
     msg.angle_min = hist->front().getValue(0);
@@ -531,7 +531,7 @@ void ROS2Interface::PublishMultibeam2(rclcpp::PublisherBase::SharedPtr pub, Mult
     pcl::toPCLPointCloud2(*cloud, pclMsg);
 
     sensor_msgs::msg::PointCloud2 msg;
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.header.frame_id = mb->getName();
     pcl_conversions::fromPCL(pclMsg, msg);
 
@@ -555,7 +555,7 @@ void ROS2Interface::PublishContact(rclcpp::PublisherBase::SharedPtr pub, Contact
     //Publish marker message
     visualization_msgs::msg::Marker msg;
     msg.header.frame_id = "world_ned";
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.ns = cnt->getName();
     msg.id = 0;
     msg.type = visualization_msgs::msg::Marker::ARROW;
@@ -592,7 +592,7 @@ void ROS2Interface::PublishUSBL(rclcpp::PublisherBase::SharedPtr pub, rclcpp::Pu
     stonefish_ros2::msg::BeaconInfo info;
     
     marker.header.frame_id = usbl->getName();
-    marker.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    marker.header.stamp = nh_->get_clock()->now();
     info.header.frame_id = marker.header.frame_id;
     info.header.stamp = marker.header.stamp;
 
@@ -647,7 +647,7 @@ void ROS2Interface::PublishTrajectoryState(rclcpp::PublisherBase::SharedPtr pubO
     //Odometry message
     nav_msgs::msg::Odometry msg;
     msg.header.frame_id = "world_ned";
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    msg.header.stamp = nh_->get_clock()->now();
     msg.child_frame_id = anim->getName();
     msg.pose.pose.position.x = p.x();
     msg.pose.pose.position.y = p.y();
