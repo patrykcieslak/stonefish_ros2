@@ -123,7 +123,8 @@ std::string ROS2ScenarioParser::SubstituteROSVars(const std::string& value)
         }
         else if (results[0] == "param")
         {
-            nh_->declare_parameter(results[1], rclcpp::PARAMETER_STRING);
+            if(!nh_->has_parameter(results[1]))
+                nh_->declare_parameter(results[1], rclcpp::PARAMETER_STRING);
             try
             {
                 auto param = nh_->get_parameter(results[1]);
