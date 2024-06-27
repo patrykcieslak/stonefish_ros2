@@ -671,11 +671,11 @@ void ROS2Interface::PublishTrajectoryState(rclcpp::PublisherBase::SharedPtr pubO
     std::static_pointer_cast<rclcpp::Publisher<stonefish_ros2::msg::Int32Stamped>>(pubIter)->publish(msg2);
 }
 
-std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr> ROS2Interface::GenerateCameraMsgPrototypes(Camera* cam, bool depth)
+std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr> ROS2Interface::GenerateCameraMsgPrototypes(Camera* cam, bool depth, const std::string frame_id)
 {
     //Image message
     sensor_msgs::msg::Image::SharedPtr img = std::make_shared<sensor_msgs::msg::Image>();
-    img->header.frame_id = cam->getName();
+    img->header.frame_id = frame_id != "" ? frame_id : cam->getName();
 	cam->getResolution(img->width, img->height);
 	img->encoding = depth ? "32FC1" : "rgb8";
 	img->is_bigendian = 0;

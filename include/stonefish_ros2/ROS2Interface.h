@@ -81,7 +81,7 @@ namespace sf
         void PublishUSBL(rclcpp::PublisherBase::SharedPtr pub, rclcpp::PublisherBase::SharedPtr pubInfo, USBL* usbl) const;
         void PublishTrajectoryState(rclcpp::PublisherBase::SharedPtr pubOdom, rclcpp::PublisherBase::SharedPtr pubIter, AnimatedEntity* anim) const;
 
-        static std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr> GenerateCameraMsgPrototypes(Camera* cam, bool depth);
+        static std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr> GenerateCameraMsgPrototypes(Camera* cam, bool depth, const std::string frame_id = "");
         static std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr> GenerateFLSMsgPrototypes(FLS* fls);
         static std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr> GenerateSSSMsgPrototypes(SSS* sss);
         static std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr> GenerateMSISMsgPrototypes(MSIS* msis);

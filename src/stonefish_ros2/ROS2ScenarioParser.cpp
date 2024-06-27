@@ -64,6 +64,7 @@
 #include <Stonefish/entities/forcefields/Jet.h>
 #include <Stonefish/actuators/Actuator.h>
 #include <Stonefish/actuators/Light.h>
+#include <Stonefish/actuators/Motor.h>
 #include <Stonefish/actuators/Servo.h>
 #include <Stonefish/actuators/SimpleThruster.h>
 #include <Stonefish/actuators/Thruster.h>
@@ -250,6 +251,7 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
     unsigned int nThrusters = 0;
     unsigned int nPropellers = 0;
     unsigned int nServos = 0;
+    unsigned int nMotors = 0;
     unsigned int nRudders = 0;
 
     unsigned int aID = 0;
@@ -269,6 +271,10 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
 
             case ActuatorType::RUDDER:
                 ++nRudders;
+                break;
+
+            case ActuatorType::MOTOR:
+                ++nMotors;
                 break;
 
             case ActuatorType::SERVO:
@@ -343,7 +349,7 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
     }
 
     //Parse all defined joint groups, single joint subscribers and ros control interfaces
-    if(nServos > 0)
+    if(nServos || nMotors > 0)
     {
         //Joint group subscribers
         const char* jgTopic = nullptr;
@@ -360,6 +366,8 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
                     mode = ServoControlMode::VELOCITY;
                 else if(modeStr == "position")
                     mode = ServoControlMode::POSITION;
+                else if(modeStr == "torque")
+                    mode = ServoControlMode::TORQUE;
                 else
                     continue; //Skip joint group -> missing parameters
             }
@@ -400,7 +408,9 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
                     mode = ServoControlMode::VELOCITY;
                 else if(modeStr == "position")
                     mode = ServoControlMode::POSITION;
-                else
+                else if(modeStr == "torque")
+                    mode = ServoControlMode::TORQUE;
+                else    
                     continue; //Skip joint group -> missing parameters
                 
                 RCLCPP_INFO_STREAM(nh_->get_logger(), "Creating joint subscriber (" << modeStr << ") " << std::string(jgTopic));
@@ -419,6 +429,7 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
     {
         const char* topicThr = nullptr;
         const char* topicSrv = nullptr;
+        const char* topicMtr = nullptr;
         const char* topicRud = nullptr;
 
         if(nThrusters > 0 && item->QueryStringAttribute("thrusters", &topicThr) == XML_SUCCESS)
@@ -426,6 +437,9 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
 
         if(nServos > 0 && item->QueryStringAttribute("servos", &topicSrv) == XML_SUCCESS)
             pubs[robot->getName() + "/servos"] = nh_->create_publisher<sensor_msgs::msg::JointState>(std::string(topicSrv), 10);
+
+        if(nMotors > 0 && item->QueryStringAttribute("motors", &topicSrv) == XML_SUCCESS)
+            pubs[robot->getName() + "/motors"] = nh_->create_publisher<sensor_msgs::msg::JointState>(std::string(topicMtr), 10);
 
         if(nRudders > 0 && item->QueryStringAttribute("rudders", &topicRud) == XML_SUCCESS)
             pubs[robot->getName() + "/rudders"] = nh_->create_publisher<sensor_msgs::msg::JointState>(std::string(topicRud), 10);
@@ -681,10 +695,19 @@ Sensor* ROS2ScenarioParser::ParseSensor(XMLElement* element, const std::string& 
         std::string sensorName = sens->getName();
         XMLElement* item;
         const char* topic = nullptr;
+        const char* frameId = nullptr;
+        std::string frameIdStr = "";
 
         //Standard sensor publisher
-        if((item = element->FirstChildElement("ros_publisher")) == nullptr
-            || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
+        if((item = element->FirstChildElement("ros_publisher")) != nullptr)
+        {
+            if(item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
+                return sens;
+
+            if(item->QueryStringAttribute("frame_id", &frameId) == XML_SUCCESS)
+                frameIdStr = std::string(frameId);
+        }    
+        else
         {
             return sens;
         }
@@ -830,7 +853,7 @@ Sensor* ROS2ScenarioParser::ParseSensor(XMLElement* element, const std::string& 
                         pubs[sensorName + "/info"] = nh_->create_publisher<sensor_msgs::msg::CameraInfo>(topicStr + "/camera_info", queueSize);
                         ColorCamera* cam = (ColorCamera*)sens;
                         cam->InstallNewDataHandler(std::bind(&ROS2SimulationManager::ColorCameraImageReady, sim, _1));
-                        camMsgProto[sensorName] = ROS2Interface::GenerateCameraMsgPrototypes(cam, false);
+                        camMsgProto[sensorName] = ROS2Interface::GenerateCameraMsgPrototypes(cam, false, frameIdStr);
                     }
                         break;
 
@@ -840,7 +863,7 @@ Sensor* ROS2ScenarioParser::ParseSensor(XMLElement* element, const std::string& 
                         pubs[sensorName + "/info"] = nh_->create_publisher<sensor_msgs::msg::CameraInfo>(topicStr + "/camera_info", queueSize);
                         DepthCamera* cam = (DepthCamera*)sens;
                         cam->InstallNewDataHandler(std::bind(&ROS2SimulationManager::DepthCameraImageReady, sim, _1));
-                        camMsgProto[sensorName] = ROS2Interface::GenerateCameraMsgPrototypes(cam, true);
+                        camMsgProto[sensorName] = ROS2Interface::GenerateCameraMsgPrototypes(cam, true, frameIdStr);
                     }
                         break;
 

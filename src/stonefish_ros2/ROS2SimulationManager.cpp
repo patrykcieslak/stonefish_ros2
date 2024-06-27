@@ -61,6 +61,7 @@
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Rudder.h>
 #include <Stonefish/actuators/SuctionCup.h>
+#include <Stonefish/actuators/Motor.h>
 #include <Stonefish/actuators/Servo.h>
 #include <Stonefish/actuators/VariableBuoyancy.h>
 #include <Stonefish/core/Robot.h>
@@ -339,6 +340,31 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
     //////////////////////////////////////SERVOS(JOINTS)/////////////////////////////////////////
     for(size_t i=0; i<rosRobots_.size(); ++i)
     {
+        if(pubs_.find(rosRobots_[i]->robot_->getName() + "/motors") != pubs_.end())
+        {
+            unsigned int aID = 0;
+            Actuator* actuator;
+            sensor_msgs::msg::JointState msg;
+            msg.header.stamp = nh_->get_clock()->now();
+            msg.header.frame_id = rosRobots_[i]->robot_->getName();
+            
+            while((actuator = rosRobots_[i]->robot_->getActuator(aID++)) != nullptr)
+            {
+                if(actuator->getType() == ActuatorType::MOTOR)
+                {
+                    Motor* mtr = (Motor*)actuator;
+                    msg.name.push_back(mtr->getJointName());
+                    msg.position.push_back(mtr->getAngle());
+                    msg.velocity.push_back(mtr->getAngularVelocity());
+                    msg.effort.push_back(mtr->getTorque());
+                }
+            }
+            if(msg.name.size() > 0)
+                std::static_pointer_cast<rclcpp::Publisher<sensor_msgs::msg::JointState>>(
+                    pubs_.at(rosRobots_[i]->robot_->getName() + "/motors")
+                )->publish(msg);
+        }
+
         if(pubs_.find(rosRobots_[i]->robot_->getName() + "/servos") != pubs_.end())
         {
             unsigned int aID = 0;
@@ -553,6 +579,22 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                     if(rosRobots_[i]->rudderSetpointsChanged_)
                     {
                         ((Rudder*)actuator)->setSetpoint(rosRobots_[i]->rudderSetpoints_[rudderID++]);
+                    }
+                }
+                    break;
+
+                case ActuatorType::MOTOR:
+                {
+                    if(rosRobots_[i]->servoSetpoints_.size() == 0)
+                        continue;
+
+                    auto it = rosRobots_[i]->servoSetpoints_.find(((Motor*)actuator)->getJointName());
+                    if(it != rosRobots_[i]->servoSetpoints_.end())
+                    {
+                        if(it->second.first == ServoControlMode::TORQUE)
+                        {
+                            ((Motor*)actuator)->setIntensity(it->second.second);
+                        }
                     }
                 }
                     break;
