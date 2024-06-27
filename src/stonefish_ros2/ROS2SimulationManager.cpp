@@ -57,6 +57,7 @@
 #include <Stonefish/comms/USBL.h>
 #include <Stonefish/actuators/Push.h>
 #include <Stonefish/actuators/SimpleThruster.h>
+#include <Stonefish/actuators/ConfigurableThruster.h>
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/actuators/Propeller.h>
 #include <Stonefish/actuators/Rudder.h>
@@ -395,7 +396,6 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
             unsigned int aID = 0;
             unsigned int thID = 0;
             Actuator* actuator;
-            Thruster* th;
             stonefish_ros2::msg::ThrusterState msg;
             msg.header.stamp = nh_->get_clock()->now();
             msg.header.frame_id = rosRobots_[i]->robot_->getName();
@@ -408,9 +408,33 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
             {
                 if(actuator->getType() == ActuatorType::THRUSTER)
                 {
-                    th = (Thruster*)actuator;
+                    Thruster* th = (Thruster*)actuator;
                     msg.setpoint[thID] = th->getSetpoint();
                     msg.rpm[thID] = th->getOmega()/(Scalar(2)*M_PI)*Scalar(60);
+                    msg.thrust[thID] = th->getThrust();
+                    msg.torque[thID] = th->getTorque();
+                    ++thID;
+
+                    if(thID == rosRobots_[i]->thrusterSetpoints_.size())
+                        break;
+                }
+                else if(actuator->getType() == ActuatorType::CONFIGURABLE_THRUSTER)
+                {
+                    ConfigurableThruster* th = (ConfigurableThruster*)actuator;
+                    msg.setpoint[thID] = th->getSetpoint()/(Scalar(2)*M_PI)*Scalar(60);
+                    msg.rpm[thID] = th->getOmega()/(Scalar(2)*M_PI)*Scalar(60);
+                    msg.thrust[thID] = th->getThrust();
+                    msg.torque[thID] = th->getTorque();
+                    ++thID;
+
+                    if(thID == rosRobots_[i]->thrusterSetpoints_.size())
+                        break;
+                }
+                 else if(actuator->getType() == ActuatorType::SIMPLE_THRUSTER)
+                {
+                    SimpleThruster* th = (SimpleThruster*)actuator;
+                    msg.setpoint[thID] = th->getThrustSetpoint();
+                    msg.rpm[thID] = 0.0;
                     msg.thrust[thID] = th->getThrust();
                     msg.torque[thID] = th->getTorque();
                     ++thID;
@@ -454,6 +478,44 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                         msg.header.frame_id = push->getName();
                         msg.wrench.force.x = push->getForce();
                         std::static_pointer_cast<rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>>(it->second)->publish(msg);
+                    }
+                }
+                    break;
+
+                case ActuatorType::CONFIGURABLE_THRUSTER:
+                {
+                    ConfigurableThruster* th = ((ConfigurableThruster*)actuator);
+                    if(rosRobots_[i]->thrusterSetpointsChanged_)
+                    {
+                        // print
+                        std::cout << "setpoint conf " << rosRobots_[i]->thrusterSetpoints_[thID] << std::endl;
+
+                        th->setSetpoint(rosRobots_[i]->thrusterSetpoints_[thID++]);
+                    }
+                        
+                    auto it = pubs_.find(actuator->getName()+"/wrench");
+                    if(it != pubs_.end())
+                    {
+                        geometry_msgs::msg::WrenchStamped msg;
+                        msg.header.stamp = nh_->get_clock()->now();
+                        msg.header.frame_id = th->getName();
+                        msg.wrench.force.x = th->getThrust();
+                        msg.wrench.torque.x = th->getTorque();
+                        std::static_pointer_cast<rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>>(it->second)->publish(msg);
+                    }            
+
+                    it = pubs_.find(actuator->getName()+"/joint_state");
+                    if(it != pubs_.end())
+                    {
+                        //Publish propeller rotation for visualization
+                        sensor_msgs::msg::JointState msg;
+                        msg.header.stamp = nh_->get_clock()->now();
+                        msg.header.frame_id = th->getName();
+                        msg.name.push_back(th->getName()+"/propeller");
+                        msg.position.push_back(th->getAngle());  
+                        msg.velocity.push_back(th->getOmega());
+                        msg.effort.push_back(th->getThrust());
+                        std::static_pointer_cast<rclcpp::Publisher<sensor_msgs::msg::JointState>>(it->second)->publish(msg);
                     }
                 }
                     break;
