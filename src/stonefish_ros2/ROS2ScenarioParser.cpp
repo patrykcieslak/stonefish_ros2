@@ -349,7 +349,7 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
     }
 
     //Parse all defined joint groups, single joint subscribers and ros control interfaces
-    if(nServos || nMotors > 0)
+    if(nServos > 0 || nMotors > 0)
     {
         //Joint group subscribers
         const char* jgTopic = nullptr;
@@ -438,7 +438,7 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
         if(nServos > 0 && item->QueryStringAttribute("servos", &topicSrv) == XML_SUCCESS)
             pubs[robot->getName() + "/servos"] = nh_->create_publisher<sensor_msgs::msg::JointState>(std::string(topicSrv), 10);
 
-        if(nMotors > 0 && item->QueryStringAttribute("motors", &topicSrv) == XML_SUCCESS)
+        if(nMotors > 0 && item->QueryStringAttribute("motors", &topicMtr) == XML_SUCCESS)
             pubs[robot->getName() + "/motors"] = nh_->create_publisher<sensor_msgs::msg::JointState>(std::string(topicMtr), 10);
 
         if(nRudders > 0 && item->QueryStringAttribute("rudders", &topicRud) == XML_SUCCESS)
