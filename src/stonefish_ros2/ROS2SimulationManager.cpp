@@ -20,7 +20,7 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 02/10/23.
-//  Copyright (c) 2023-2024 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2025 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros2/ROS2SimulationManager.h"
@@ -36,7 +36,7 @@
 #include <Stonefish/entities/animation/ManualTrajectory.h>
 #include <Stonefish/entities/forcefields/Uniform.h>
 #include <Stonefish/entities/forcefields/Jet.h>
-#include <Stonefish/joints/Joint.h>
+#include <Stonefish/joints/FixedJoint.h>
 #include <Stonefish/sensors/scalar/Pressure.h>
 #include <Stonefish/sensors/scalar/DVL.h>
 #include <Stonefish/sensors/scalar/Accelerometer.h>
@@ -1261,12 +1261,21 @@ void ROS2SimulationManager::JointGroupCallback(const std_msgs::msg::Float64Multi
     }
 }
 
-void ROS2SimulationManager::JointBreakService(const std_srvs::srv::Trigger::Request::SharedPtr req, 
-                                                std_srvs::srv::Trigger::Response::SharedPtr res, Joint* j)
+void ROS2SimulationManager::GlueService(const std_srvs::srv::SetBool::Request::SharedPtr req,
+    std_srvs::srv::SetBool::Response::SharedPtr res, FixedJoint* fix)
 {
-    (void)req;
-    j->RemoveFromSimulation(this);
-    res->message = "Joint '" + j->getName() + "' broken.";
+    if(req->data)
+    {
+        fix->RemoveFromSimulation(this);
+        fix->UpdateDefinition();
+        fix->AddToSimulation(this);
+        res->message = "Glue activated.";
+    }
+    else
+    {
+        fix->RemoveFromSimulation(this);  
+        res->message = "Glue deactivated.";
+    }
     res->success = true;
 }
 

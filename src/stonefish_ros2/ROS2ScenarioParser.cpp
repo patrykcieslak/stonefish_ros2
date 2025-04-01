@@ -1078,7 +1078,7 @@ bool ROS2ScenarioParser::ParseContact(XMLElement* element)
 }
 
 FixedJoint* ROS2ScenarioParser::ParseGlue(XMLElement* element)
-{
+{   
     FixedJoint* glue = ScenarioParser::ParseGlue(element);
     if(glue != nullptr)
     {
@@ -1092,9 +1092,9 @@ FixedJoint* ROS2ScenarioParser::ParseGlue(XMLElement* element)
 
         ROS2SimulationManager* sim = (ROS2SimulationManager*)getSimulationManager();
         std::map<std::string, rclcpp::ServiceBase::SharedPtr>& srvs = sim->getServices();
-        std::function<void(const std_srvs::srv::Trigger::Request::SharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr res)> callbackFunc =
-            std::bind(&ROS2SimulationManager::JointBreakService, sim, _1, _2, glue);
-        srvs[glue->getName()] = nh_->create_service<std_srvs::srv::Trigger>(std::string(topic), callbackFunc);
+        std::function<void(const std_srvs::srv::SetBool::Request::SharedPtr req, std_srvs::srv::SetBool::Response::SharedPtr res)> callbackFunc =
+            std::bind(&ROS2SimulationManager::GlueService, sim, _1, _2, glue);
+        srvs[glue->getName()] = nh_->create_service<std_srvs::srv::SetBool>(std::string(topic), callbackFunc);
     }
     return glue;
 }

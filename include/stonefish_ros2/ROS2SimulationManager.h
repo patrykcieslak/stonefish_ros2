@@ -68,7 +68,7 @@ namespace sf
     class FLS;
     class SSS;
     class MSIS;
-    class Joint;
+    class FixedJoint;
 
     struct ROS2Robot
 	{
@@ -163,9 +163,10 @@ namespace sf
                                                             ServoControlMode mode, const std::string& jointName);
         void JointGroupCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg,  std::shared_ptr<ROS2Robot> robot, 
                                                             ServoControlMode mode, const std::vector<std::string>& jointNames);
-        void JointBreakService(const std_srvs::srv::Trigger::Request::SharedPtr req, 
-                            std_srvs::srv::Trigger::Response::SharedPtr res, Joint* j);
-        
+        void GlueService(const std_srvs::srv::SetBool::Request::SharedPtr req,
+                            std_srvs::srv::SetBool::Response::SharedPtr res, FixedJoint* fix);
+
+
     protected:
         std::string scenarioPath_;
         std::vector<std::shared_ptr<ROS2Robot>> rosRobots_;
