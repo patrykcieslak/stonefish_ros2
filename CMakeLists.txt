@@ -21,7 +21,7 @@ find_package(pcl_conversions REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(Stonefish REQUIRED 1.3.0)
+find_package(Stonefish REQUIRED 1.5.0)
 
 # messages
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -33,6 +33,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DVL.msg"
   "msg/ThrusterState.msg"
   "msg/DebugPhysics.msg"
+  "msg/Event.msg"
+  "msg/EventArray.msg"
   "srv/SonarSettings.srv"
   "srv/SonarSettings2.srv"
   "srv/Respawn.srv"

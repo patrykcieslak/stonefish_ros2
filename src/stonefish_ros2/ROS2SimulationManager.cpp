@@ -48,6 +48,10 @@
 #include <Stonefish/sensors/scalar/Odometry.h>
 #include <Stonefish/sensors/vision/ColorCamera.h>
 #include <Stonefish/sensors/vision/DepthCamera.h>
+#include <Stonefish/sensors/vision/ThermalCamera.h>
+#include <Stonefish/sensors/vision/OpticalFlowCamera.h>
+#include <Stonefish/sensors/vision/SegmentationCamera.h>
+#include <Stonefish/sensors/vision/EventBasedCamera.h>
 #include <Stonefish/sensors/scalar/Multibeam.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
@@ -123,6 +127,11 @@ std::shared_ptr<image_transport::ImageTransport> ROS2SimulationManager::getImage
 std::map<std::string, std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr>>& ROS2SimulationManager::getCameraMsgPrototypes()
 {
     return cameraMsgPrototypes_;
+}
+
+std::map<std::string, std::tuple<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr, sensor_msgs::msg::Image::SharedPtr>>& ROS2SimulationManager::getDualImageCameraMsgPrototypes()
+{
+    return dualImageCameraMsgPrototypes_;
 }
 
 std::map<std::string, std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr>>& ROS2SimulationManager::getSonarMsgPrototypes()
@@ -800,6 +809,77 @@ void ROS2SimulationManager::DepthCameraImageReady(DepthCamera* cam)
     //Publish messages
     imgPubs_.at(cam->getName()).publish(img);
     std::static_pointer_cast<rclcpp::Publisher<sensor_msgs::msg::CameraInfo>>(pubs_.at(cam->getName() + "/info"))->publish(*info);
+}
+
+void ROS2SimulationManager::ThermalCameraImageReady(ThermalCamera* cam)
+{
+    //Fill in the image message
+    sensor_msgs::msg::Image::SharedPtr img = std::get<0>(dualImageCameraMsgPrototypes_[cam->getName()]);
+    img->header.stamp = nh_->get_clock()->now();
+    memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
+
+    //Fill in the info message
+    sensor_msgs::msg::CameraInfo::SharedPtr info = std::get<1>(dualImageCameraMsgPrototypes_[cam->getName()]);
+    info->header.stamp = img->header.stamp;
+
+    //Fill in the display message
+    sensor_msgs::msg::Image::SharedPtr img2 = std::get<2>(dualImageCameraMsgPrototypes_[cam->getName()]);
+    img2->header.stamp = img->header.stamp;
+    memcpy(img2->data.data(), (uint8_t*)cam->getDisplayDataPointer(), img2->step * img2->height);
+
+    //Publish messages
+    imgPubs_.at(cam->getName()).publish(img);
+    std::static_pointer_cast<rclcpp::Publisher<sensor_msgs::msg::CameraInfo>>(pubs_.at(cam->getName() + "/info"))->publish(*info);
+    imgPubs_.at(cam->getName()+"/display").publish(img2);
+}
+
+void ROS2SimulationManager::OpticalFlowCameraImageReady(OpticalFlowCamera* cam)
+{
+    //Fill in the image message
+    sensor_msgs::msg::Image::SharedPtr img = std::get<0>(dualImageCameraMsgPrototypes_[cam->getName()]);
+    img->header.stamp = nh_->get_clock()->now();
+    memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
+
+    //Fill in the info message
+    sensor_msgs::msg::CameraInfo::SharedPtr info = std::get<1>(dualImageCameraMsgPrototypes_[cam->getName()]);
+    info->header.stamp = img->header.stamp;
+
+    //Fill in the display message
+    sensor_msgs::msg::Image::SharedPtr img2 = std::get<2>(dualImageCameraMsgPrototypes_[cam->getName()]);
+    img2->header.stamp = img->header.stamp;
+    memcpy(img2->data.data(), (uint8_t*)cam->getDisplayDataPointer(), img2->step * img2->height);
+
+    //Publish messages
+    imgPubs_.at(cam->getName()).publish(img);
+    std::static_pointer_cast<rclcpp::Publisher<sensor_msgs::msg::CameraInfo>>(pubs_.at(cam->getName() + "/info"))->publish(*info);
+    imgPubs_.at(cam->getName()+"/display").publish(img2);
+}
+
+void ROS2SimulationManager::SegmentationCameraImageReady(SegmentationCamera* cam)
+{
+    //Fill in the image message
+    sensor_msgs::msg::Image::SharedPtr img = std::get<0>(dualImageCameraMsgPrototypes_[cam->getName()]);
+    img->header.stamp = nh_->get_clock()->now();
+    memcpy(img->data.data(), (uint16_t*)cam->getImageDataPointer(), img->step * img->height);
+
+    //Fill in the info message
+    sensor_msgs::msg::CameraInfo::SharedPtr info = std::get<1>(dualImageCameraMsgPrototypes_[cam->getName()]);
+    info->header.stamp = img->header.stamp;
+
+    //Fill in the display message
+    sensor_msgs::msg::Image::SharedPtr img2 = std::get<2>(dualImageCameraMsgPrototypes_[cam->getName()]);
+    img2->header.stamp = img->header.stamp;
+    memcpy(img2->data.data(), (uint8_t*)cam->getDisplayDataPointer(), img2->step * img2->height);
+
+    //Publish messages
+    imgPubs_.at(cam->getName()).publish(img);
+    std::static_pointer_cast<rclcpp::Publisher<sensor_msgs::msg::CameraInfo>>(pubs_.at(cam->getName() + "/info"))->publish(*info);
+    imgPubs_.at(cam->getName()+"/display").publish(img2);
+}
+
+void ROS2SimulationManager::EventBasedCameraOutputReady(EventBasedCamera* cam)
+{
+    interface_->PublishEventBasedCamera(pubs_.at(cam->getName()), cam);
 }
 
 void ROS2SimulationManager::Multibeam2ScanReady(Multibeam2* mb)

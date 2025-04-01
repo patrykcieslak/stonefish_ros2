@@ -19,4 +19,4 @@ The following dependencies have to be installed prior to building the package:
 Building
 ========
 
-Clone the code of the package to your catkin workspace and build as usual. No additional steps are required.
+Clone the code of the package to your ROS2 workspace, build and install as usual. No additional steps are required.

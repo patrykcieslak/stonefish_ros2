@@ -47,6 +47,8 @@
 #include "stonefish_ros2/msg/ins.hpp"
 #include "stonefish_ros2/msg/beacon_info.hpp"
 #include "stonefish_ros2/msg/int32_stamped.hpp"
+#include "stonefish_ros2/msg/event.hpp"
+#include "stonefish_ros2/msg/event_array.hpp"
 
 #include <Stonefish/sensors/Sample.h>
 #include <Stonefish/sensors/scalar/Accelerometer.h>
@@ -63,6 +65,10 @@
 #include <Stonefish/sensors/scalar/Profiler.h>
 #include <Stonefish/sensors/vision/ColorCamera.h>
 #include <Stonefish/sensors/vision/DepthCamera.h>
+#include <Stonefish/sensors/vision/ThermalCamera.h>
+#include <Stonefish/sensors/vision/OpticalFlowCamera.h>
+#include <Stonefish/sensors/vision/SegmentationCamera.h>
+#include <Stonefish/sensors/vision/EventBasedCamera.h>
 #include <Stonefish/sensors/vision/Multibeam2.h>
 #include <Stonefish/sensors/vision/FLS.h>
 #include <Stonefish/sensors/vision/SSS.h>
@@ -671,6 +677,29 @@ void ROS2Interface::PublishTrajectoryState(rclcpp::PublisherBase::SharedPtr pubO
     std::static_pointer_cast<rclcpp::Publisher<stonefish_ros2::msg::Int32Stamped>>(pubIter)->publish(msg2);
 }
 
+void ROS2Interface::PublishEventBasedCamera(rclcpp::PublisherBase::SharedPtr pub, EventBasedCamera* ebc)
+{
+    //Get access to event texture
+    int32_t* data = (int32_t*)ebc->getImageDataPointer();
+
+    //Event array message
+    stonefish_ros2::msg::EventArray msg;
+    msg.header.frame_id = ebc->getName();
+    msg.header.stamp = nh_->get_clock()->now();
+    ebc->getResolution(msg.width, msg.height);
+    msg.events.resize(ebc->getLastEventCount());
+    for(size_t i=0; i<msg.events.size(); ++i)
+    {
+        //First 4 bytes - pixel coords
+        msg.events[i].x = (unsigned int)(data[i*2] >> 16);
+        msg.events[i].y = (unsigned int)(data[i*2] & 0xFFFF); 
+        //Next 4 bytes - polarity and time
+        msg.events[i].ts = msg.header.stamp + rclcpp::Duration(0, abs(data[i*2+1]));
+        msg.events[i].polarity = data[i*2+1] > 0;
+    }
+    std::static_pointer_cast<rclcpp::Publisher<stonefish_ros2::msg::EventArray>>(pub)->publish(msg);
+}
+
 std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr> ROS2Interface::GenerateCameraMsgPrototypes(Camera* cam, bool depth, const std::string frame_id)
 {
     //Image message
@@ -720,6 +749,189 @@ std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::Shar
     info->roi.do_rectify = false;
 	
     return std::make_pair(img, info);
+}
+
+std::tuple<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr, sensor_msgs::msg::Image::SharedPtr> ROS2Interface::GenerateThermalCameraMsgPrototypes(ThermalCamera* cam)
+{
+    //Image message
+    sensor_msgs::msg::Image::SharedPtr img = std::make_shared<sensor_msgs::msg::Image>();
+    img->header.frame_id = cam->getName();
+    cam->getResolution(img->width, img->height);
+    img->encoding = "32FC1";
+    img->is_bigendian = 0;
+    img->step = img->width * sizeof(float);
+    img->data.resize(img->step * img->height);
+
+    //Camera info message
+    sensor_msgs::msg::CameraInfo::SharedPtr info = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    info->header.frame_id = cam->getName();
+    info->width = img->width;
+    info->height = img->height;
+    info->binning_x = 0;
+    info->binning_y = 0;
+    //Distortion
+    info->distortion_model = "plumb_bob";
+    info->d.resize(5, 0.0);
+    //Rectification (for stereo only)
+    info->r[0] = 1.0;
+    info->r[4] = 1.0;
+    info->r[8] = 1.0;
+    //Intrinsic
+    double tanhfov2 = tan(cam->getHorizontalFOV()/180.0*M_PI/2.0);
+    double tanvfov2 = (double)info->height/(double)info->width * tanhfov2;
+    info->k[2] = (double)info->width/2.0; //cx
+    info->k[5] = (double)info->height/2.0; //cy
+    info->k[0] = info->k[2]/tanhfov2; //fx
+    info->k[4] = info->k[5]/tanvfov2; //fy 
+    info->k[8] = 1.0;
+    //Projection
+    info->p[2] = info->k[2]; //cx'
+    info->p[6] = info->k[5]; //cy'
+    info->p[0] = info->k[0]; //fx';
+    info->p[5] = info->k[4]; //fy';
+    info->p[3] = 0.0; //Tx - position of second camera from stereo pair
+    info->p[7] = 0.0; //Ty;
+    info->p[10] = 1.0;
+    //ROI
+    info->roi.x_offset = 0;
+    info->roi.y_offset = 0;
+    info->roi.height = info->height;
+    info->roi.width = info->width;
+    info->roi.do_rectify = false;
+
+    //Display message
+    sensor_msgs::msg::Image::SharedPtr disp = std::make_shared<sensor_msgs::msg::Image>();
+    disp->header.frame_id = cam->getName();
+    disp->width = img->width;
+    disp->height = img->height;
+    disp->encoding = "rgb8";
+    disp->is_bigendian = 0;
+    disp->step = disp->width * 3;
+    disp->data.resize(disp->step * disp->height);
+    
+    return std::make_tuple(img, info, disp);
+}
+
+std::tuple<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr, sensor_msgs::msg::Image::SharedPtr> ROS2Interface::GenerateOpticalFlowCameraMsgPrototypes(OpticalFlowCamera* cam)
+{
+    //Image message
+    sensor_msgs::msg::Image::SharedPtr img = std::make_shared<sensor_msgs::msg::Image>();
+    img->header.frame_id = cam->getName();
+    cam->getResolution(img->width, img->height);
+    img->encoding = "32FC2";
+    img->is_bigendian = 0;
+    img->step = img->width * 2 * sizeof(float);
+    img->data.resize(img->step * img->height);
+
+    //Camera info message
+    sensor_msgs::msg::CameraInfo::SharedPtr info = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    info->header.frame_id = cam->getName();
+    info->width = img->width;
+    info->height = img->height;
+    info->binning_x = 0;
+    info->binning_y = 0;
+    //Distortion
+    info->distortion_model = "plumb_bob";
+    info->d.resize(5, 0.0);
+    //Rectification (for stereo only)
+    info->r[0] = 1.0;
+    info->r[4] = 1.0;
+    info->r[8] = 1.0;
+    //Intrinsic
+    double tanhfov2 = tan(cam->getHorizontalFOV()/180.0*M_PI/2.0);
+    double tanvfov2 = (double)info->height/(double)info->width * tanhfov2;
+    info->k[2] = (double)info->width/2.0; //cx
+    info->k[5] = (double)info->height/2.0; //cy
+    info->k[0] = info->k[2]/tanhfov2; //fx
+    info->k[4] = info->k[5]/tanvfov2; //fy 
+    info->k[8] = 1.0;
+    //Projection
+    info->p[2] = info->k[2]; //cx'
+    info->p[6] = info->k[5]; //cy'
+    info->p[0] = info->k[0]; //fx';
+    info->p[5] = info->k[4]; //fy';
+    info->p[3] = 0.0; //Tx - position of second camera from stereo pair
+    info->p[7] = 0.0; //Ty;
+    info->p[10] = 1.0;
+    //ROI
+    info->roi.x_offset = 0;
+    info->roi.y_offset = 0;
+    info->roi.height = info->height;
+    info->roi.width = info->width;
+    info->roi.do_rectify = false;
+
+    //Display message
+    sensor_msgs::msg::Image::SharedPtr disp = std::make_shared<sensor_msgs::msg::Image>();
+    disp->header.frame_id = cam->getName();
+    disp->width = img->width;
+    disp->height = img->height;
+    disp->encoding = "rgb8";
+    disp->is_bigendian = 0;
+    disp->step = disp->width * 3;
+    disp->data.resize(disp->step * disp->height);
+    
+    return std::make_tuple(img, info, disp);
+}
+
+std::tuple<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr, sensor_msgs::msg::Image::SharedPtr> ROS2Interface::GenerateSegmentationCameraMsgPrototypes(SegmentationCamera* cam)
+{
+    //Image message
+    sensor_msgs::msg::Image::SharedPtr img = std::make_shared<sensor_msgs::msg::Image>();
+    img->header.frame_id = cam->getName();
+    cam->getResolution(img->width, img->height);
+    img->encoding = "16UC1";
+    img->is_bigendian = 0;
+    img->step = img->width * sizeof(uint16_t);
+    img->data.resize(img->step * img->height);
+
+    //Camera info message
+    sensor_msgs::msg::CameraInfo::SharedPtr info = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    info->header.frame_id = cam->getName();
+    info->width = img->width;
+    info->height = img->height;
+    info->binning_x = 0;
+    info->binning_y = 0;
+    //Distortion
+    info->distortion_model = "plumb_bob";
+    info->d.resize(5, 0.0);
+    //Rectification (for stereo only)
+    info->r[0] = 1.0;
+    info->r[4] = 1.0;
+    info->r[8] = 1.0;
+    //Intrinsic
+    double tanhfov2 = tan(cam->getHorizontalFOV()/180.0*M_PI/2.0);
+    double tanvfov2 = (double)info->height/(double)info->width * tanhfov2;
+    info->k[2] = (double)info->width/2.0; //cx
+    info->k[5] = (double)info->height/2.0; //cy
+    info->k[0] = info->k[2]/tanhfov2; //fx
+    info->k[4] = info->k[5]/tanvfov2; //fy 
+    info->k[8] = 1.0;
+    //Projection
+    info->p[2] = info->k[2]; //cx'
+    info->p[6] = info->k[5]; //cy'
+    info->p[0] = info->k[0]; //fx';
+    info->p[5] = info->k[4]; //fy';
+    info->p[3] = 0.0; //Tx - position of second camera from stereo pair
+    info->p[7] = 0.0; //Ty;
+    info->p[10] = 1.0;
+    //ROI
+    info->roi.x_offset = 0;
+    info->roi.y_offset = 0;
+    info->roi.height = info->height;
+    info->roi.width = info->width;
+    info->roi.do_rectify = false;
+
+    //Display message
+    sensor_msgs::msg::Image::SharedPtr disp = std::make_shared<sensor_msgs::msg::Image>();
+    disp->header.frame_id = cam->getName();
+    disp->width = img->width;
+    disp->height = img->height;
+    disp->encoding = "rgb8";
+    disp->is_bigendian = 0;
+    disp->step = disp->width * 3;
+    disp->data.resize(disp->step * disp->height);
+    
+    return std::make_tuple(img, info, disp);
 }
 
 std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr> ROS2Interface::GenerateFLSMsgPrototypes(FLS* fls)

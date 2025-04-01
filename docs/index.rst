@@ -43,7 +43,7 @@ If you find this software useful in your research, please cite:
 
 Support
 =======
-I offer paid support on setting up the simulation of your own systems, including necessary 3D modelling (simplification of CAD models for physics, preparation of accurate visualisations, etc.), setup of simulation scenarios, development of new sensors, actuators, and custom features that do not require significant changes to the code base. Please contact me at [patryk.cieslak@udg.edu](mailto:patryk.cieslak@udg.edu).
+I offer paid support on setting up the simulation of your own systems, including necessary 3D modelling (simplification of CAD models for physics, preparation of accurate visualisations, etc.), setup of simulation scenarios, development of new sensors, actuators, and custom features that do not require significant changes to the code base. Please contact me at [patryk.cieslak.eng@gmail.com](mailto:patryk.cieslak.eng@gmail.com).
 
 Funding
 =======

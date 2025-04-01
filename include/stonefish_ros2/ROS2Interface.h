@@ -20,7 +20,7 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 04/10/23.
-//  Copyright (c) 2023 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2025 Patryk Cieslak. All rights reserved.
 //
 
 #ifndef __Stonefish_ROS2Interface__
@@ -46,6 +46,10 @@ namespace sf
     class ForceTorque;
     class RotaryEncoder;
     class Camera;
+    class ThermalCamera;
+    class OpticalFlowCamera;
+    class SegmentationCamera;
+    class EventBasedCamera;
     class Multibeam;
     class Profiler;
     class Multibeam2;
@@ -80,8 +84,12 @@ namespace sf
         void PublishContact(rclcpp::PublisherBase::SharedPtr pub, Contact* cnt) const;
         void PublishUSBL(rclcpp::PublisherBase::SharedPtr pub, rclcpp::PublisherBase::SharedPtr pubInfo, USBL* usbl) const;
         void PublishTrajectoryState(rclcpp::PublisherBase::SharedPtr pubOdom, rclcpp::PublisherBase::SharedPtr pubIter, AnimatedEntity* anim) const;
+        void PublishEventBasedCamera(rclcpp::PublisherBase::SharedPtr pub, EventBasedCamera* ebc);
 
         static std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr> GenerateCameraMsgPrototypes(Camera* cam, bool depth, const std::string frame_id = "");
+        static std::tuple<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr, sensor_msgs::msg::Image::SharedPtr> GenerateThermalCameraMsgPrototypes(ThermalCamera* cam);
+        static std::tuple<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr, sensor_msgs::msg::Image::SharedPtr> GenerateOpticalFlowCameraMsgPrototypes(OpticalFlowCamera* cam);
+        static std::tuple<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr, sensor_msgs::msg::Image::SharedPtr> GenerateSegmentationCameraMsgPrototypes(SegmentationCamera* cam);
         static std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr> GenerateFLSMsgPrototypes(FLS* fls);
         static std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr> GenerateSSSMsgPrototypes(SSS* sss);
         static std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr> GenerateMSISMsgPrototypes(MSIS* msis);
