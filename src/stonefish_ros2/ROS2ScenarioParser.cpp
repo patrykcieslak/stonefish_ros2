@@ -1035,7 +1035,6 @@ Light* ROS2ScenarioParser::ParseLight(XMLElement* element, const std::string& na
     if(l != nullptr)
     {
         ROS2SimulationManager* sim = (ROS2SimulationManager*)getSimulationManager();
-        std::map<std::string, rclcpp::SubscriptionBase::SharedPtr>& subs = sim->getSubscribers();
         XMLElement* item;
 
         //Online update of light origin frame
@@ -1043,9 +1042,21 @@ Light* ROS2ScenarioParser::ParseLight(XMLElement* element, const std::string& na
         if((item = element->FirstChildElement("ros_subscriber")) != nullptr
             && item->QueryStringAttribute("origin", &originTopic) == XML_SUCCESS)
         {
+            std::map<std::string, rclcpp::SubscriptionBase::SharedPtr>& subs = sim->getSubscribers();
             std::function<void(const geometry_msgs::msg::Transform::SharedPtr msg)> callbackFunc =
                         std::bind(&ROS2SimulationManager::ActuatorOriginCallback, sim, _1, (Actuator*)l);
             subs[l->getName()] = nh_->create_subscription<geometry_msgs::msg::Transform>(std::string(originTopic), 10, callbackFunc);
+        }
+
+        //Service for switching the light
+        const char* switchTopic = nullptr;
+        if((item = element->FirstChildElement("ros_service")) != nullptr
+            && item->QueryStringAttribute("topic", &switchTopic) == XML_SUCCESS)
+        {
+            std::map<std::string, rclcpp::ServiceBase::SharedPtr>& srvs = sim->getServices();
+            std::function<void(const std_srvs::srv::SetBool::Request::SharedPtr req, std_srvs::srv::SetBool::Response::SharedPtr res)> 
+                callbackFunc = std::bind(&ROS2SimulationManager::LightService, sim, _1, _2, l);
+            srvs[l->getName()] = nh_->create_service<std_srvs::srv::SetBool>(std::string(switchTopic), callbackFunc);
         }
     }
     return l;

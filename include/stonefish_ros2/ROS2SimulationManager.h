@@ -69,6 +69,7 @@ namespace sf
     class SSS;
     class MSIS;
     class FixedJoint;
+    class Light;
 
     struct ROS2Robot
 	{
@@ -165,6 +166,8 @@ namespace sf
                                                             ServoControlMode mode, const std::vector<std::string>& jointNames);
         void GlueService(const std_srvs::srv::SetBool::Request::SharedPtr req,
                             std_srvs::srv::SetBool::Response::SharedPtr res, FixedJoint* fix);
+        void LightService(const std_srvs::srv::SetBool::Request::SharedPtr req,
+                            std_srvs::srv::SetBool::Response::SharedPtr res, Light* light);
 
 
     protected:

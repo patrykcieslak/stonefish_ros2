@@ -68,6 +68,7 @@
 #include <Stonefish/actuators/Motor.h>
 #include <Stonefish/actuators/Servo.h>
 #include <Stonefish/actuators/VariableBuoyancy.h>
+#include <Stonefish/actuators/Light.h>
 #include <Stonefish/core/Robot.h>
 
 using namespace std::placeholders;
@@ -1276,6 +1277,17 @@ void ROS2SimulationManager::GlueService(const std_srvs::srv::SetBool::Request::S
         fix->RemoveFromSimulation(this);  
         res->message = "Glue deactivated.";
     }
+    res->success = true;
+}
+
+void ROS2SimulationManager::LightService(const std_srvs::srv::SetBool::Request::SharedPtr req,
+    std_srvs::srv::SetBool::Response::SharedPtr res, Light* light)
+{
+    light->Switch(req->data);
+    if(req->data)
+        res->message = "Light turned on.";
+    else
+        res->message = "Light turned off.";
     res->success = true;
 }
 
