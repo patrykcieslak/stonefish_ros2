@@ -20,7 +20,7 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 02/10/23.
-//  Copyright (c) 2023 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2025 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros2/ROS2SimulationManager.h"
@@ -29,8 +29,8 @@
 namespace sf
 {
 
-ROS2ConsoleSimulationApp::ROS2ConsoleSimulationApp(std::string name, std::string dataPath, ROS2SimulationManager* sim)
-    : ConsoleSimulationApp(name, dataPath, sim)
+ROS2ConsoleSimulationApp::ROS2ConsoleSimulationApp(std::string title, std::string dataPath, ROS2SimulationManager* sim)
+    : ConsoleSimulationApp(title, dataPath, sim)
 {
 }
 

@@ -35,7 +35,7 @@ namespace sf
     class ROS2ConsoleSimulationApp : public ConsoleSimulationApp
     {
     public:
-        ROS2ConsoleSimulationApp(std::string name, std::string dataPath, ROS2SimulationManager* sim);
+        ROS2ConsoleSimulationApp(std::string title, std::string dataPath, ROS2SimulationManager* sim);
         void Startup();
         void Shutdown();
     };

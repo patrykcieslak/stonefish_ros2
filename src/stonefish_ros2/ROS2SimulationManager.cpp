@@ -30,6 +30,7 @@
 #include "stonefish_ros2/msg/thruster_state.hpp"
 #include "stonefish_ros2/msg/debug_physics.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "geometry_msgs/msg/wrench_stamped.hpp"
 
@@ -59,6 +60,7 @@
 #include <Stonefish/sensors/vision/MSIS.h>
 #include <Stonefish/sensors/Contact.h>
 #include <Stonefish/comms/USBL.h>
+#include <Stonefish/comms/OpticalModem.h>
 #include <Stonefish/actuators/Push.h>
 #include <Stonefish/actuators/SimpleThruster.h>
 #include <Stonefish/actuators/Thruster.h>
@@ -293,17 +295,63 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
     Comm* comm;
     while((comm = getComm(id++)) != nullptr)
     {
-        if(!comm->isNewDataAvailable())
-            continue;
-
         if(pubs_.find(comm->getName()) == pubs_.end())
             continue;
 
         switch(comm->getType())
         {
+            case CommType::ACOUSTIC:
+            {
+                std_msgs::msg::String msg;
+                std::shared_ptr<CommDataFrame> message;
+                while ((message = comm->ReadMessage()) != nullptr)
+                {
+                    msg.data = std::string(message->data.begin(), message->data.end());
+                    std::static_pointer_cast<rclcpp::Publisher<std_msgs::msg::String>>(
+                        pubs_.at(comm->getName())
+                    )->publish(msg);
+                }
+            }
+                break;
+
             case CommType::USBL:
-                interface_->PublishUSBL(pubs_.at(comm->getName()), pubs_.at(comm->getName() + "/beacon_info"), (USBL*)comm);
-                comm->MarkDataOld();
+            {
+                if(comm->isNewDataAvailable())
+                {
+                    interface_->PublishUSBL(pubs_.at(comm->getName()), pubs_.at(comm->getName() + "/beacon_info"), (USBL*)comm);
+                    comm->MarkDataOld();
+                }
+
+                std_msgs::msg::String msg;
+                std::shared_ptr<CommDataFrame> message;
+                while ((message = comm->ReadMessage()) != nullptr)
+                {
+                    msg.data = std::string(message->data.begin(), message->data.end());
+                    std::static_pointer_cast<rclcpp::Publisher<std_msgs::msg::String>>(
+                        pubs_.at(comm->getName() + "/received_data")
+                    )->publish(msg);
+                }
+            }
+                break;
+
+            case CommType::OPTICAL:
+            {
+                std_msgs::msg::Float64 msg;
+                msg.data = ((OpticalModem*)comm)->getReceptionQuality();
+                std::static_pointer_cast<rclcpp::Publisher<std_msgs::msg::Float64>>(
+                    pubs_.at(comm->getName())
+                )->publish(msg);
+
+                std_msgs::msg::String msg2;
+                std::shared_ptr<CommDataFrame> message;
+                while ((message = comm->ReadMessage()) != nullptr)
+                {
+                    msg2.data = std::string(message->data.begin(), message->data.end());
+                    std::static_pointer_cast<rclcpp::Publisher<std_msgs::msg::String>>(
+                        pubs_.at(comm->getName() + "/received_data")
+                    )->publish(msg2);
+                }
+            }
                 break;
 
             default:
@@ -935,9 +983,32 @@ void ROS2SimulationManager::MSISScanReady(MSIS* msis)
     disp->header.stamp = img->header.stamp;
     memcpy(disp->data.data(), (uint8_t*)msis->getDisplayDataPointer(), disp->step * disp->height);
 
+    //Fill in the laser scan message
+    Scalar currentAngle = (msis->getCurrentRotationStep() * msis->getRotationStepAngle()) * M_PI / 180.0;
+    unsigned int currentBeamIndex = msis->getCurrentBeamIndex();
+
+    sensor_msgs::msg::LaserScan laserscan;
+    laserscan.header.stamp = img->header.stamp;
+    laserscan.header.frame_id = msis->getName();
+    laserscan.angle_min = currentAngle;
+    laserscan.angle_max = currentAngle;
+    laserscan.angle_increment = 0.0;
+    laserscan.time_increment = 0.0;
+    laserscan.range_min = msis->getRangeMin();
+    laserscan.range_max = msis->getRangeMax();
+    laserscan.ranges.resize(img->height);
+    laserscan.intensities.resize(img->height);
+
+    for(unsigned int i=0; i<img->height; ++i)
+    {
+        laserscan.ranges[i] = (laserscan.range_max - laserscan.range_min) * (img->height-1-i)/Scalar(img->height-1) + laserscan.range_min;
+        laserscan.intensities[i] = img->data[img->step * i + currentBeamIndex];
+    }
+
     //Publish messages
     imgPubs_.at(msis->getName()).publish(img);
     imgPubs_.at(msis->getName() + "/display").publish(disp);
+    std::static_pointer_cast<rclcpp::Publisher<sensor_msgs::msg::LaserScan>>(pubs_.at(msis->getName() + "/beam"))->publish(laserscan);
 }
 
 void ROS2SimulationManager::EnableCurrentsService(const std_srvs::srv::Trigger::Request::SharedPtr req, 
@@ -1045,6 +1116,11 @@ void ROS2SimulationManager::PushCallback(const std_msgs::msg::Float64::SharedPtr
 void ROS2SimulationManager::VBSCallback(const std_msgs::msg::Float64::SharedPtr msg, VariableBuoyancy* act)
 {
     act->setFlowRate(msg->data);
+}
+
+void ROS2SimulationManager::CommCallback(const std_msgs::msg::String::SharedPtr msg, Comm* comm)
+{
+    comm->SendMessage(msg->data);
 }
 
 void ROS2SimulationManager::SuctionCupService(const std_srvs::srv::SetBool::Request::SharedPtr req,

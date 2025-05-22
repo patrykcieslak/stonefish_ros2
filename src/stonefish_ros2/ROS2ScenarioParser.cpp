@@ -962,6 +962,7 @@ Sensor* ROS2ScenarioParser::ParseSensor(XMLElement* element, const std::string& 
                         srvs[sensorName] = nh_->create_service<stonefish_ros2::srv::SonarSettings2>(topicStr + "/settings", callbackFunc);
                         img_pubs[sensorName] = it->advertise(topicStr + "/image", queueSize);
                         img_pubs[sensorName + "/display"] = it->advertise(topicStr + "/display", queueSize);
+                        pubs[sensorName + "/beam"] = nh_->create_publisher<sensor_msgs::msg::LaserScan>(topicStr + "/last_beam", queueSize);
                     }
                         break;
 
@@ -998,26 +999,80 @@ Comm* ROS2ScenarioParser::ParseComm(XMLElement* element, const std::string& name
     {
         ROS2SimulationManager* sim = (ROS2SimulationManager*)getSimulationManager();
         std::map<std::string, rclcpp::PublisherBase::SharedPtr>& pubs = sim->getPublishers();
+        std::map<std::string, rclcpp::SubscriptionBase::SharedPtr>& subs = sim->getSubscribers();
         std::string commName = comm->getName();
 
         //Publishing info
         XMLElement* item;
-        const char* topic = nullptr;
-        if((item = element->FirstChildElement("ros_publisher")) == nullptr
-            || item->QueryStringAttribute("topic", &topic) != XML_SUCCESS)
+        const char* pubTopic = nullptr;
+        const char* subTopic = nullptr;
+        if((item = element->FirstChildElement("ros_publisher")) != nullptr)
         {
-            return comm;
+            item->QueryStringAttribute("topic", &pubTopic);
         }
 
-        std::string topicStr(topic);
+        if((item = element->FirstChildElement("ros_subscriber")) != nullptr)
+        {
+            item->QueryStringAttribute("topic", &subTopic);
+        }
+
+        if(pubTopic == nullptr && subTopic == nullptr)
+            return comm;
 
         //Generate publishers for different comm types
         switch(comm->getType())
         {
+            case CommType::ACOUSTIC:
+            {
+                if(pubTopic != nullptr)
+                {
+                    std::string topicStr {pubTopic};
+                    pubs[commName] = nh_->create_publisher<std_msgs::msg::String>(topicStr + "/received_data", 10);
+                }
+                if(subTopic != nullptr)
+                {
+                    std::string topicStr {subTopic};
+                    std::function<void(const std_msgs::msg::String::SharedPtr msg)> callbackFunc =
+                        std::bind(&ROS2SimulationManager::CommCallback, sim, _1, comm);
+                    subs[commName + "/data_to_send"] = nh_->create_subscription<std_msgs::msg::String>(topicStr + "/data_to_send", 1, callbackFunc);
+                }
+            }
+                break;
+
             case CommType::USBL:
             {
-                pubs[commName] = nh_->create_publisher<visualization_msgs::msg::MarkerArray>(topicStr, 10);
-                pubs[commName + "/beacon_info"] = nh_->create_publisher<stonefish_ros2::msg::BeaconInfo>(topicStr + "/beacon_info", 10);
+                if(pubTopic != nullptr)
+                {
+                    std::string topicStr {pubTopic};
+                    pubs[commName] = nh_->create_publisher<visualization_msgs::msg::MarkerArray>(topicStr, 10);
+                    pubs[commName + "/beacon_info"] = nh_->create_publisher<stonefish_ros2::msg::BeaconInfo>(topicStr + "/beacon_info", 10);
+                    pubs[commName + "/received_data"] = nh_->create_publisher<std_msgs::msg::String>(topicStr + "/received_data", 10);
+                }
+                if(subTopic != nullptr)
+                {
+                    std::string topicStr {subTopic};
+                    std::function<void(const std_msgs::msg::String::SharedPtr msg)> callbackFunc =
+                        std::bind(&ROS2SimulationManager::CommCallback, sim, _1, comm);
+                    subs[commName + "/data_to_send"] = nh_->create_subscription<std_msgs::msg::String>(topicStr + "/data_to_send", 1, callbackFunc);
+                }
+            }
+                break;
+
+            case CommType::OPTICAL:
+            {
+                if(pubTopic != nullptr)
+                {
+                    std::string topicStr {pubTopic};
+                    pubs[commName] = nh_->create_publisher<std_msgs::msg::Float64>(topicStr + "/reception_quality", 10);
+                    pubs[commName + "/received_data"] = nh_->create_publisher<std_msgs::msg::String>(topicStr + "/received_data", 10);
+                }
+                if(subTopic != nullptr)
+                {
+                    std::string topicStr {subTopic};
+                    std::function<void(const std_msgs::msg::String::SharedPtr msg)> callbackFunc =
+                        std::bind(&ROS2SimulationManager::CommCallback, sim, _1, comm);
+                    subs[commName + "/data_to_send"] = nh_->create_subscription<std_msgs::msg::String>(topicStr + "/data_to_send", 1, callbackFunc);
+                }
             }
                 break;
 

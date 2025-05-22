@@ -32,6 +32,7 @@
 #include "std_srvs/srv/set_bool.hpp"
 #include "std_msgs/msg/float64.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "geometry_msgs/msg/vector3.hpp"
 #include "geometry_msgs/msg/transform.hpp"
 #include "nav_msgs/msg/odometry.hpp"
@@ -70,6 +71,7 @@ namespace sf
     class MSIS;
     class FixedJoint;
     class Light;
+    class Comm;
 
     struct ROS2Robot
 	{
@@ -168,7 +170,7 @@ namespace sf
                             std_srvs::srv::SetBool::Response::SharedPtr res, FixedJoint* fix);
         void LightService(const std_srvs::srv::SetBool::Request::SharedPtr req,
                             std_srvs::srv::SetBool::Response::SharedPtr res, Light* light);
-
+        void CommCallback(const std_msgs::msg::String::SharedPtr msg, Comm* comm);
 
     protected:
         std::string scenarioPath_;
