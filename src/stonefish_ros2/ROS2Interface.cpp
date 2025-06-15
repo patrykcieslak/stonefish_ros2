@@ -43,6 +43,8 @@
 #include "pcl/point_types.h"
 #include "pcl_conversions/pcl_conversions.h"
 
+
+
 #include "stonefish_ros2/msg/dvl.hpp"
 #include "stonefish_ros2/msg/ins.hpp"
 #include "stonefish_ros2/msg/beacon_info.hpp"
@@ -694,7 +696,9 @@ void ROS2Interface::PublishEventBasedCamera(rclcpp::PublisherBase::SharedPtr pub
         msg.events[i].x = (unsigned int)(data[i*2] >> 16);
         msg.events[i].y = (unsigned int)(data[i*2] & 0xFFFF); 
         //Next 4 bytes - polarity and time
-        msg.events[i].ts = msg.header.stamp + rclcpp::Duration(0, abs(data[i*2+1]));
+        rclcpp::Time t{msg.header.stamp};
+        t += rclcpp::Duration(0, std::abs(data[i*2+1]));
+        msg.events[i].ts = t;
         msg.events[i].polarity = data[i*2+1] > 0;
     }
     std::static_pointer_cast<rclcpp::Publisher<stonefish_ros2::msg::EventArray>>(pub)->publish(msg);
