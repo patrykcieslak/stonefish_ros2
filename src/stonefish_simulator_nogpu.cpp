@@ -27,6 +27,7 @@
 #include <Stonefish/utils/SystemUtil.hpp>
 #include "stonefish_ros2/ROS2SimulationManager.h"
 #include "stonefish_ros2/ROS2ConsoleSimulationApp.h"
+#include <std_msgs/msg/bool.hpp>
 
 using namespace std::chrono_literals;
 
@@ -38,8 +39,30 @@ public:
                            sf::Scalar rate) 
                            : Node("stonefish_simulator_nogpu")
     {   
+        step_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+            "step_simulation", 1, 
+            [this](std_msgs::msg::Bool::SharedPtr msg) {
+                if (msg->data) {
+                    this->Step();
+                }
+            });
+        pause_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+            "pause_simulation", 1, 
+            [this](std_msgs::msg::Bool::SharedPtr msg) {
+                if (msg->data) {
+                    this->Pause();
+                }
+            });
+        resume_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+            "resume_simulation", 1, 
+            [this](std_msgs::msg::Bool::SharedPtr msg) {
+                if (msg->data) {
+                    this->Resume();
+                }
+            });
         sf::ROS2SimulationManager* manager = new sf::ROS2SimulationManager(rate, scenarioPath, std::shared_ptr<rclcpp::Node>(this));
         app_ = std::shared_ptr<sf::ROS2ConsoleSimulationApp>(new sf::ROS2ConsoleSimulationApp("Stonefish Simulator", dataPath, manager));
+        app_->
         app_->Startup();
     };
 
@@ -48,8 +71,27 @@ public:
         app_->Shutdown();
     };
 
+    void Step()
+    {
+        app_->Step();
+    };
+
+    void Pause()
+    {
+        app_->Pause();
+    };
+
+    void Resume()
+    {
+        app_->Resume();
+    };
+
 private:
     std::shared_ptr<sf::ROS2ConsoleSimulationApp> app_;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr pause_sub_;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr resume_sub_;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr step_sub_;
+
 };
 
 int main(int argc, char **argv)
