@@ -29,7 +29,11 @@
 #include "stonefish_ros2/ROS2ConsoleSimulationApp.h"
 #include <std_msgs/msg/bool.hpp>
 
+#include <std_srvs/srv/trigger.hpp>
+
 using namespace std::chrono_literals;
+using std::placeholders::_1;
+using std::placeholders::_2;
 
 class StonefishConsoleNode : public rclcpp::Node
 {
@@ -39,30 +43,20 @@ public:
                            sf::Scalar rate) 
                            : Node("stonefish_simulator_nogpu")
     {   
-        step_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-            "step_simulation", 1, 
-            [this](std_msgs::msg::Bool::SharedPtr msg) {
-                if (msg->data) {
-                    this->Step();
-                }
-            });
-        pause_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-            "pause_simulation", 1, 
-            [this](std_msgs::msg::Bool::SharedPtr msg) {
-                if (msg->data) {
-                    this->Pause();
-                }
-            });
-        resume_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-            "resume_simulation", 1, 
-            [this](std_msgs::msg::Bool::SharedPtr msg) {
-                if (msg->data) {
-                    this->Resume();
-                }
-            });
+        pause_srv_ = this->create_service<std_srvs::srv::Trigger>(
+            "pause_simulation",
+            std::bind(&StonefishConsoleNode::pause_simulation_callback, this, _1, _2));
+        
+        resume_srv_ = this->create_service<std_srvs::srv::Trigger>(
+            "resume_simulation",
+            std::bind(&StonefishConsoleNode::resume_simulation_callback, this, _1, _2));
+
+        step_srv_ = this->create_service<std_srvs::srv::Trigger>(
+            "step_simulation",
+            std::bind(&StonefishConsoleNode::step_simulation_callback, this, _1, _2));
+
         sf::ROS2SimulationManager* manager = new sf::ROS2SimulationManager(rate, scenarioPath, std::shared_ptr<rclcpp::Node>(this));
         app_ = std::shared_ptr<sf::ROS2ConsoleSimulationApp>(new sf::ROS2ConsoleSimulationApp("Stonefish Simulator", dataPath, manager));
-        app_->
         app_->Startup();
     };
 
@@ -87,10 +81,55 @@ public:
     };
 
 private:
+    void pause_simulation_callback(
+        const std::shared_ptr<std_srvs::srv::Trigger::Request> /*req*/,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> res)
+    {
+        if (app_->getState() == sf::SimulationState::STOPPED)
+        {
+            res->success = false;
+            res->message = "Simulation is not running.";
+            return;
+        }
+        app_->Pause();
+        res->success = true;
+        res->message = "Simulation paused successfully.";
+    }
+    void resume_simulation_callback(
+        const std::shared_ptr<std_srvs::srv::Trigger::Request> /*req*/,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> res)
+    {
+        if (app_->getState() == sf::SimulationState::RUNNING)
+        {
+            res->success = false;
+            res->message = "Simulation is already running.";
+            return;
+        }
+        app_->Resume();
+        res->success = true;
+        res->message = "Simulation resumed successfully.";
+    }
+
+    void step_simulation_callback(
+        const std::shared_ptr<std_srvs::srv::Trigger::Request> /*req*/,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> res)
+    {
+        if (app_->getState() == sf::SimulationState::RUNNING)
+        {
+            res->success = false;
+            res->message = "Simulation is already running, please stop before stepping.";
+            return;
+        }
+        app_->Step();
+        res->success = true;
+        res->message = "Simulation stepped successfully.";
+    }
+
     std::shared_ptr<sf::ROS2ConsoleSimulationApp> app_;
-    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr pause_sub_;
-    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr resume_sub_;
-    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr step_sub_;
+
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pause_srv_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resume_srv_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr step_srv_;
 
 };
 
