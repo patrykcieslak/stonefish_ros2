@@ -50,4 +50,24 @@ void ROS2GraphicalSimulationApp::Tick()
     }
 }
 
+void ROS2GraphicalSimulationApp::Shutdown()
+{
+    CleanUp();
+}
+
+void ROS2GraphicalSimulationApp::Step()
+{
+    StepSimulation();
+}
+
+void ROS2GraphicalSimulationApp::Pause()
+{
+    StopSimulation();
+}
+
+void ROS2GraphicalSimulationApp::Resume()
+{
+    ResumeSimulation();
+}
+
 }
