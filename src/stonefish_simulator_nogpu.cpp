@@ -27,7 +27,6 @@
 #include <Stonefish/utils/SystemUtil.hpp>
 #include "stonefish_ros2/ROS2SimulationManager.h"
 #include "stonefish_ros2/ROS2ConsoleSimulationApp.h"
-#include <std_msgs/msg/bool.hpp>
 
 #include <std_srvs/srv/trigger.hpp>
 
