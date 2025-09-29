@@ -38,6 +38,10 @@ namespace sf
         ROS2GraphicalSimulationApp(std::string title, std::string dataPath, RenderSettings s, HelperSettings h, ROS2SimulationManager* sim);
         void Startup();
         void Tick();
+        void Shutdown();
+        void Step();
+        void Pause();
+        void Resume();
     };
 }
 

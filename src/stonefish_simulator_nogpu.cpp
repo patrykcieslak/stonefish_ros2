@@ -28,7 +28,11 @@
 #include "stonefish_ros2/ROS2SimulationManager.h"
 #include "stonefish_ros2/ROS2ConsoleSimulationApp.h"
 
+#include <std_srvs/srv/trigger.hpp>
+
 using namespace std::chrono_literals;
+using std::placeholders::_1;
+using std::placeholders::_2;
 
 class StonefishConsoleNode : public rclcpp::Node
 {
@@ -38,6 +42,18 @@ public:
                            sf::Scalar rate) 
                            : Node("stonefish_simulator_nogpu")
     {   
+        pause_srv_ = this->create_service<std_srvs::srv::Trigger>(
+            "pause_simulation",
+            std::bind(&StonefishConsoleNode::pause_simulation_callback, this, _1, _2));
+        
+        resume_srv_ = this->create_service<std_srvs::srv::Trigger>(
+            "resume_simulation",
+            std::bind(&StonefishConsoleNode::resume_simulation_callback, this, _1, _2));
+
+        step_srv_ = this->create_service<std_srvs::srv::Trigger>(
+            "step_simulation",
+            std::bind(&StonefishConsoleNode::step_simulation_callback, this, _1, _2));
+
         sf::ROS2SimulationManager* manager = new sf::ROS2SimulationManager(rate, scenarioPath, std::shared_ptr<rclcpp::Node>(this));
         app_ = std::shared_ptr<sf::ROS2ConsoleSimulationApp>(new sf::ROS2ConsoleSimulationApp("Stonefish Simulator", dataPath, manager));
         app_->Startup();
@@ -48,8 +64,72 @@ public:
         app_->Shutdown();
     };
 
+    void Step()
+    {
+        app_->Step();
+    };
+
+    void Pause()
+    {
+        app_->Pause();
+    };
+
+    void Resume()
+    {
+        app_->Resume();
+    };
+
 private:
+    void pause_simulation_callback(
+        const std::shared_ptr<std_srvs::srv::Trigger::Request> /*req*/,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> res)
+    {
+        if (app_->getState() == sf::SimulationState::STOPPED)
+        {
+            res->success = false;
+            res->message = "Simulation is not running.";
+            return;
+        }
+        app_->Pause();
+        res->success = true;
+        res->message = "Simulation paused successfully.";
+    }
+    void resume_simulation_callback(
+        const std::shared_ptr<std_srvs::srv::Trigger::Request> /*req*/,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> res)
+    {
+        if (app_->getState() == sf::SimulationState::RUNNING)
+        {
+            res->success = false;
+            res->message = "Simulation is already running.";
+            return;
+        }
+        app_->Resume();
+        res->success = true;
+        res->message = "Simulation resumed successfully.";
+    }
+
+    void step_simulation_callback(
+        const std::shared_ptr<std_srvs::srv::Trigger::Request> /*req*/,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> res)
+    {
+        if (app_->getState() == sf::SimulationState::RUNNING)
+        {
+            res->success = false;
+            res->message = "Simulation is already running, please stop before stepping.";
+            return;
+        }
+        app_->Step();
+        res->success = true;
+        res->message = "Simulation stepped successfully.";
+    }
+
     std::shared_ptr<sf::ROS2ConsoleSimulationApp> app_;
+
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pause_srv_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resume_srv_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr step_srv_;
+
 };
 
 int main(int argc, char **argv)

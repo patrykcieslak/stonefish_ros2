@@ -38,6 +38,9 @@ namespace sf
         ROS2ConsoleSimulationApp(std::string title, std::string dataPath, ROS2SimulationManager* sim);
         void Startup();
         void Shutdown();
+        void Step();
+        void Pause();
+        void Resume();
     };
 }
 

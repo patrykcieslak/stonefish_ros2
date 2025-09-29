@@ -45,4 +45,19 @@ void ROS2ConsoleSimulationApp::Shutdown()
     CleanUp();
 }
 
+void ROS2ConsoleSimulationApp::Step()
+{
+    StepSimulation();
+}
+
+void ROS2ConsoleSimulationApp::Pause()
+{
+    StopSimulation();
+}
+
+void ROS2ConsoleSimulationApp::Resume()
+{
+    ResumeSimulation();
+}
+
 }
