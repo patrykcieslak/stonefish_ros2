@@ -1,0 +1,4 @@
+float32 jerlov # Water type
+---
+bool success
+string message
