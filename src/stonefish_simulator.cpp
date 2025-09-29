@@ -66,6 +66,10 @@ public:
             "set_jerlov",
             std::bind(&StonefishNode::set_jerlov_callback, this, _1, _2));
 
+        set_sun_params_srv_ = this->create_service<stonefish_ros2::srv::SetSunParams>(
+            "set_sun_params",
+            std::bind(&StonefishNode::set_sun_params_callback, this, _1, _2));
+
         sf::ROS2SimulationManager* manager = new sf::ROS2SimulationManager(rate, scenarioPath, std::shared_ptr<rclcpp::Node>(this));
         app_ = std::shared_ptr<sf::ROS2GraphicalSimulationApp>(new sf::ROS2GraphicalSimulationApp("Stonefish Simulator", 
                                                                                                  dataPath, s, h, manager));
@@ -161,6 +165,21 @@ private:
         app_->getSimulationManager()->getOcean()->setWaterType(req->jerlov);
         res->success = true;
         res->message = "Jerlov water type successfully set to %f." + std::to_string(req->jerlov);
+    }
+
+    void set_sun_params_callback(
+        const std::shared_ptr<stonefish_ros2::srv::SetSunParams::Request> req,
+        std::shared_ptr<stonefish_ros2::srv::SetSunParams::Response> res)
+    {
+        if (req->azimuth < -180.0f || req->azimuth > 180.0f || req->elevation < -10.0f || req->elevation > 90.0f)
+        {
+            res->success = false;
+            res->message = "Invalid sun parameters. Azimuth must be in [-180, 180] and elevation in [-10, 90].";
+            return;
+        }
+        app_->getSimulationManager()->getAtmosphere()->SetSunPosition(req->azimuth, req->elevation);
+        res->success = true;
+        res->message = "Sun parameters successfully set to azimuth: " + std::to_string(req->azimuth) + ", elevation: " + std::to_string(req->elevation) + ".";
     }
             
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pause_srv_;
