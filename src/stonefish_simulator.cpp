@@ -29,6 +29,9 @@
 #include "stonefish_ros2/ROS2GraphicalSimulationApp.h"
 
 #include "std_srvs/srv/trigger.hpp"
+#include "std_srvs/srv/set_bool.hpp"
+#include "stonefish_ros2/srv/set_jerlov.hpp"
+#include "stonefish_ros2/srv/set_sun_params.hpp"
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -59,6 +62,18 @@ public:
         tick_srv_ = this->create_service<std_srvs::srv::Trigger>(
             "tick_simulation",
             std::bind(&StonefishNode::tick_callback, this, _1, _2));
+
+        set_jerlov_srv_ = this->create_service<stonefish_ros2::srv::SetJerlov>(
+            "set_jerlov",
+            std::bind(&StonefishNode::set_jerlov_callback, this, _1, _2));
+
+        set_sun_params_srv_ = this->create_service<stonefish_ros2::srv::SetSunParams>(
+            "set_sun_params",
+            std::bind(&StonefishNode::set_sun_params_callback, this, _1, _2));
+
+        set_particles_srv_ = this->create_service<std_srvs::srv::SetBool>(
+            "set_particles",
+            std::bind(&StonefishNode::set_particles_callback, this, _1, _2));
 
         sf::ROS2SimulationManager* manager = new sf::ROS2SimulationManager(rate, scenarioPath, std::shared_ptr<rclcpp::Node>(this));
         app_ = std::shared_ptr<sf::ROS2GraphicalSimulationApp>(new sf::ROS2GraphicalSimulationApp("Stonefish Simulator", 
@@ -141,11 +156,59 @@ private:
         res->success = true;
         res->message = "Simulation ticked successfully.";
     }
+
+    void set_jerlov_callback(
+        const std::shared_ptr<stonefish_ros2::srv::SetJerlov::Request> req,
+        std::shared_ptr<stonefish_ros2::srv::SetJerlov::Response> res)
+    {
+        if (req->jerlov < 0.0f || req->jerlov > 1.0f)
+        {
+            res->success = false;
+            res->message = "Invalid Jerlov water type. Must be between 0 and 1.";
+            return;
+        }
+        app_->getSimulationManager()->getOcean()->setWaterType(req->jerlov);
+        res->success = true;
+        res->message = "Jerlov water type successfully set to %f." + std::to_string(req->jerlov);
+    }
+
+    void set_sun_params_callback(
+        const std::shared_ptr<stonefish_ros2::srv::SetSunParams::Request> req,
+        std::shared_ptr<stonefish_ros2::srv::SetSunParams::Response> res)
+    {
+        if (req->azimuth < -180.0f || req->azimuth > 180.0f || req->elevation < -10.0f || req->elevation > 90.0f)
+        {
+            res->success = false;
+            res->message = "Invalid sun parameters. Azimuth must be in [-180, 180] and elevation in [-10, 90].";
+            return;
+        }
+        app_->getSimulationManager()->getAtmosphere()->SetSunPosition(req->azimuth, req->elevation);
+        res->success = true;
+        res->message = "Sun parameters successfully set to azimuth: " + std::to_string(req->azimuth) + ", elevation: " + std::to_string(req->elevation) + ".";
+    }
+
+    void set_particles_callback(
+        const std::shared_ptr<std_srvs::srv::SetBool::Request> req,
+        std::shared_ptr<std_srvs::srv::SetBool::Response> res)
+    {
+        if (app_->getSimulationManager()->getOcean()->hasParticles() == req->data)
+        {
+            res->success = false;
+            res->message = std::string("Particles are already ") + (req->data ? "enabled." : "disabled.");
+            return;
+        }
+        app_->getSimulationManager()->getOcean()->setParticles(req->data);
+        res->success = true;
+        res->message = std::string("Particles ") + (req->data ? "enabled." : "disabled.");
+    }
             
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pause_srv_;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resume_srv_;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr step_srv_;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr tick_srv_;
+    rclcpp::Service<stonefish_ros2::srv::SetJerlov>::SharedPtr set_jerlov_srv_;
+    rclcpp::Service<stonefish_ros2::srv::SetSunParams>::SharedPtr set_sun_params_srv_;
+    rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr set_particles_srv_;
 
     std::shared_ptr<sf::ROS2GraphicalSimulationApp> app_;
     rclcpp::TimerBase::SharedPtr tickTimer_;
