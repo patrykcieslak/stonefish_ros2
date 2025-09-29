@@ -3,7 +3,6 @@ set -e
 
 # ----------------------------- GLOBAL VARIABLES -----------------------------
 STONEFISH_DIR="$HOME/opt/stonefish"
-ROS_WORKSPACE="${WORKSPACE:-$HOME/ros2_ws}"
 LOG_PREFIX="[$(date +%T)]"
 
 # ----------------------------- HELPER FUNCTIONS -----------------------------
@@ -63,25 +62,10 @@ install_stonefish() {
     log_info "Stonefish installation complete."
 }
 
-# ----------------------------- BUILD ROS 2 PACKAGES -----------------------------
-build_ros_workspace() {
-    log_info "Setting up ROS 2 workspace..."
-    cd "$ROS_WORKSPACE"
-
-    log_info "Sourcing ROS 2 setup..."
-    . /opt/ros/humble/setup.sh
-
-    log_info "Building stonefish_ros2 first (dependency for other packages)..."
-    colcon build --packages-select stonefish_ros2 --symlink-install
-
-    log_info "Stonefish ROS 2 package successfully built."
-}
-
 # ----------------------------- EXECUTE INSTALLATION -----------------------------
 log_info "Starting manual installation of extra dependencies..."
 install_cpp_dependencies
 install_gcc13_compiler
 install_stonefish
-build_ros_workspace
 
 log_info "All dependencies installed successfully."
