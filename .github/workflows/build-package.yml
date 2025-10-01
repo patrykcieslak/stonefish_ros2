@@ -17,6 +17,14 @@ jobs:
       - name: Prepare workspace layout
         run: |
           mkdir -p ros2_ws/src
-          
-      - uses: actions/checkout@v4
-      - run: 
+      - name: Checkout repository into ros2_ws/src    
+        uses: actions/checkout@v4
+        with:
+          path: ros2_ws/src/${{ github.event.repository.name }}
+      - name: Build the package
+        shell: bash
+        working-directory: ros2_ws
+        run: |
+          set -euo pipefail
+          source /opt/ros/humble/setup.bash
+          colcon build
