@@ -7,13 +7,12 @@ on:
 jobs:
   build:
     name: Build Stonefish ROS 2 package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-arm64
     container:
       image: ghcr.io/vortexntnu/stonefish:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --entrypoint /bin/bash
     steps:
       - name: Prepare workspace layout
         run: |
