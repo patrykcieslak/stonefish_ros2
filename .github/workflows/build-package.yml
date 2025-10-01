@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     name: Build Stonefish ROS 2 package
-    runs-on: ubuntu-latest-arm64
+    runs-on: ubuntu-22.04-arm64
     container:
       image: ghcr.io/vortexntnu/stonefish:latest
       credentials:
