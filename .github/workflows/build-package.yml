@@ -26,5 +26,5 @@ jobs:
         working-directory: ros2_ws
         run: |
           set -euo pipefail
-          source /opt/ros/humble/setup.bash
+          source /opt/ros/humble/setup.sh
           colcon build
