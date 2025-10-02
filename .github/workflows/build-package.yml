@@ -5,12 +5,26 @@ on:
   schedule:
     - cron: '0 1 * * *' # Runs daily at 01:00 UTC
 jobs:
-  call_reusable_workflow:
-    strategy:
-      matrix:
-        test_script:
-          - "scripts/build-package.sh"
-    uses: vortexntnu/vortex-ci/.github/workflows/reusable-ros2-simulator-test.yml@main
-    with:
-      setup_script: "scripts/stonefish-setup.sh"
-      test_script: "${{ matrix.test_script }}"
+  build:
+    name: Build Stonefish ROS 2 package
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/vortexntnu/stonefish:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Prepare workspace layout
+        run: |
+          mkdir -p ros2_ws/src
+      - name: Checkout repository into ros2_ws/src    
+        uses: actions/checkout@v4
+        with:
+          path: ros2_ws/src/${{ github.event.repository.name }}
+      - name: Build the package
+        shell: bash
+        working-directory: ros2_ws
+        run: |
+          set -e pipefail
+          source /opt/ros/humble/setup.sh
+          colcon build
