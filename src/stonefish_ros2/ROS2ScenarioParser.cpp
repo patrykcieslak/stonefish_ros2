@@ -934,6 +934,7 @@ Sensor* ROS2ScenarioParser::ParseSensor(XMLElement* element, const std::string& 
                         srvs[sensorName] = nh_->create_service<stonefish_ros2::srv::SonarSettings>(topicStr + "/settings", callbackFunc);
                         img_pubs[sensorName] = it->advertise(topicStr + "/image", queueSize);
                         img_pubs[sensorName + "/display"] = it->advertise(topicStr + "/display", queueSize);
+                        img_pubs[sensorName + "/display_mono"] = it->advertise(topicStr + "/display_mono", queueSize);
                     }
                         break;
 

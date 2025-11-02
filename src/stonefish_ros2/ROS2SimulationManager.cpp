@@ -948,10 +948,33 @@ void ROS2SimulationManager::FLSScanReady(FLS* fls)
     disp->header.stamp = img->header.stamp;
     memcpy(disp->data.data(), (uint8_t*)fls->getDisplayDataPointer(), disp->step * disp->height);
 
+    //Fill in the monochrome display message
+    sensor_msgs::msg::Image::SharedPtr dispMono = std::make_shared<sensor_msgs::msg::Image>();
+    dispMono->encoding = "mono8";
+    dispMono->width = disp->width;
+    dispMono->height = disp->height;
+    dispMono->step = dispMono->width * 1; // 1 byte per pixel
+    dispMono->is_bigendian = 0;
+
+    dispMono->header.stamp = img->header.stamp;
+    dispMono->header.frame_id = img->header.frame_id;
+
+    dispMono->data.resize(dispMono->step * dispMono->height);
+    const uint8_t* rgb_data = reinterpret_cast<const uint8_t*>(fls->getDisplayDataPointer());
+    uint8_t* mono_data = dispMono->data.data();
+
+    const size_t total_pixels = dispMono->width * dispMono->height;
+
+    for (size_t i = 0; i < total_pixels; ++i)
+    {
+        // Extract red channel only (assuming RGBRGBRGB... order)
+        mono_data[i] = rgb_data[i * 3];
+    }
+
     //Publish messages
     imgPubs_.at(fls->getName()).publish(img);
     imgPubs_.at(fls->getName() + "/display").publish(disp);
-
+    imgPubs_.at(fls->getName() + "/display_mono").publish(dispMono);
 }
 
 void ROS2SimulationManager::SSSScanReady(SSS* sss)
