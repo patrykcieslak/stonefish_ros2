@@ -29,6 +29,7 @@
 
 #include "stonefish_ros2/msg/thruster_state.hpp"
 #include "stonefish_ros2/msg/debug_physics.hpp"
+#include "stonefish_ros2/msg/sonar_info.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "std_msgs/msg/bool.hpp"
@@ -942,7 +943,7 @@ void ROS2SimulationManager::FLSScanReady(FLS* fls)
     sensor_msgs::msg::Image::SharedPtr img = sonarMsgPrototypes_[fls->getName()].first;
     img->header.stamp = nh_->get_clock()->now();
     memcpy(img->data.data(), (uint8_t*)fls->getImageDataPointer(), img->step * img->height);
-
+    
     //Fill in the display message
     sensor_msgs::msg::Image::SharedPtr disp = sonarMsgPrototypes_[fls->getName()].second;
     disp->header.stamp = img->header.stamp;
@@ -971,10 +972,31 @@ void ROS2SimulationManager::FLSScanReady(FLS* fls)
         mono_data[i] = rgb_data[i * 3];
     }
 
+    //Fill in sonar info message
+    stonefish_ros2::msg::SonarInfo info;
+
+    info.header.stamp    = img->header.stamp;
+    info.header.frame_id = img->header.frame_id;
+
+    info.width  = disp->width;
+    info.height = disp->height;
+
+    info.min_range = fls->getRangeMin();
+    info.max_range = fls->getRangeMax();
+    info.vertical_fov = fls->getVerticalFOV();
+
+    if (info.height > 0)
+        info.meters_per_pixel = info.max_range / static_cast<double>(info.height);
+    else
+        info.meters_per_pixel = 0.0;
+
+    auto sonar_info_pub = std::static_pointer_cast<rclcpp::Publisher<stonefish_ros2::msg::SonarInfo>>(pubs_.at(fls->getName() + "/info"));
+    
     //Publish messages
     imgPubs_.at(fls->getName()).publish(img);
     imgPubs_.at(fls->getName() + "/display").publish(disp);
     imgPubs_.at(fls->getName() + "/display_mono").publish(dispMono);
+    sonar_info_pub->publish(info);
 }
 
 void ROS2SimulationManager::SSSScanReady(SSS* sss)

@@ -53,6 +53,7 @@
 #include "stonefish_ros2/msg/ins.hpp"
 #include "stonefish_ros2/msg/thruster_state.hpp"
 #include "stonefish_ros2/msg/debug_physics.hpp"
+#include "stonefish_ros2/msg/sonar_info.hpp"
 #include "stonefish_ros2/srv/sonar_settings.hpp"
 #include "stonefish_ros2/srv/sonar_settings2.hpp"
 #include "image_transport/image_transport.hpp"
@@ -935,6 +936,7 @@ Sensor* ROS2ScenarioParser::ParseSensor(XMLElement* element, const std::string& 
                         img_pubs[sensorName] = it->advertise(topicStr + "/image", queueSize);
                         img_pubs[sensorName + "/display"] = it->advertise(topicStr + "/display", queueSize);
                         img_pubs[sensorName + "/display_mono"] = it->advertise(topicStr + "/display_mono", queueSize);
+                        pubs[sensorName + "/info"] = nh_->create_publisher<stonefish_ros2::msg::SonarInfo>(topicStr + "/sonar_info", queueSize);
                     }
                         break;
 

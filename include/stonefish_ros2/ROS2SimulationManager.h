@@ -39,6 +39,7 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
+#include "stonefish_ros2/msg/sonar_info.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 #include "stonefish_ros2/srv/sonar_settings.hpp"
 #include "stonefish_ros2/srv/sonar_settings2.hpp"

@@ -34,6 +34,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ThrusterState.msg"
   "msg/DebugPhysics.msg"
   "msg/Event.msg"
+  "msg/SonarInfo.msg"
   "msg/EventArray.msg"
   "srv/SonarSettings.srv"
   "srv/SonarSettings2.srv"
