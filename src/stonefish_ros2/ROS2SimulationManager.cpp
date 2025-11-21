@@ -79,7 +79,7 @@ namespace sf
 {
 
 ROS2SimulationManager::ROS2SimulationManager(Scalar stepsPerSecond, std::string scenarioFilePath, const std::shared_ptr<rclcpp::Node>& nh)
-	: SimulationManager(stepsPerSecond, SolverType::SOLVER_SI, CollisionFilteringType::COLLISION_EXCLUSIVE), scenarioPath_(scenarioFilePath), nh_(nh)
+	: SimulationManager(stepsPerSecond, Solver::SI, CollisionFilter::EXCLUSIVE), scenarioPath_(scenarioFilePath), nh_(nh)
 {
     it_ = std::make_shared<image_transport::ImageTransport>(nh_);
     interface_ = std::make_shared<ROS2Interface>(nh_);
@@ -661,7 +661,7 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                     {
                         if(it->second.first == ServoControlMode::TORQUE)
                         {
-                            ((Motor*)actuator)->setIntensity(it->second.second);
+                            ((Motor*)actuator)->setCommand(it->second.second);
                         }
                     }
                 }

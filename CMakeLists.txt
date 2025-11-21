@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(stonefish_ros2)
+project(stonefish_ros2 VERSION 1.6.0)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -21,7 +21,7 @@ find_package(pcl_conversions REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(Stonefish REQUIRED 1.5.0)
+find_package(Stonefish REQUIRED 1.6.0)
 
 # messages
 rosidl_generate_interfaces(${PROJECT_NAME}
