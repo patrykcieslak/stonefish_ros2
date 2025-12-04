@@ -934,15 +934,33 @@ std::tuple<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::Sha
     return std::make_tuple(img, info, disp);
 }
 
+std::pair<std::string, unsigned int> getSonarOutputFormatInfo(SonarOutputFormat fmt)
+{
+    switch (fmt)
+    {
+        case SonarOutputFormat::U8:
+            return std::make_pair("8UC1", 1);
+        case SonarOutputFormat::U16:
+            return std::make_pair("16UC1", 2);
+        case SonarOutputFormat::F32:
+            return std::make_pair("32FC1", 4);
+        default:
+            throw std::runtime_error("Unsupported sonar output format for ROS message generation");
+            break;
+    }
+}
+
 std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr> ROS2Interface::GenerateFLSMsgPrototypes(FLS* fls)
 {
+    auto formatInfo = getSonarOutputFormatInfo(fls->getOutputFormat());
+
     //Image message
     sensor_msgs::msg::Image::SharedPtr img = std::make_shared<sensor_msgs::msg::Image>();
     img->header.frame_id = fls->getName();
     fls->getResolution(img->width, img->height);
-    img->encoding = "mono8";
+    img->encoding = formatInfo.first;
     img->is_bigendian = 0;
-    img->step = img->width;
+    img->step = img->width * formatInfo.second;
     img->data.resize(img->step * img->height);
 
     //Display message
@@ -959,13 +977,15 @@ std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr
 
 std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr> ROS2Interface::GenerateSSSMsgPrototypes(SSS* sss)
 {
+    auto formatInfo = getSonarOutputFormatInfo(sss->getOutputFormat());
+
     //Image message
     sensor_msgs::msg::Image::SharedPtr img = std::make_shared<sensor_msgs::msg::Image>();
     img->header.frame_id = sss->getName();
     sss->getResolution(img->width, img->height);
-    img->encoding = "mono8";
+    img->encoding = formatInfo.first;
     img->is_bigendian = 0;
-    img->step = img->width;
+    img->step = img->width * formatInfo.second;
     img->data.resize(img->step * img->height);
 
     //Display message
@@ -982,13 +1002,15 @@ std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr
 
 std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr> ROS2Interface::GenerateMSISMsgPrototypes(MSIS* msis)
 {
+    auto formatInfo = getSonarOutputFormatInfo(msis->getOutputFormat());
+
     //Image message
     sensor_msgs::msg::Image::SharedPtr img = std::make_shared<sensor_msgs::msg::Image>();
     img->header.frame_id = msis->getName();
     msis->getResolution(img->width, img->height);
-    img->encoding = "mono8";
+    img->encoding = formatInfo.first;
     img->is_bigendian = 0;
-    img->step = img->width;
+    img->step = img->width * formatInfo.second;
     img->data.resize(img->step * img->height);
 
     //Display message
