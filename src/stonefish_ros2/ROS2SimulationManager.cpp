@@ -78,6 +78,12 @@ using namespace std::placeholders;
 namespace sf
 {
 
+static rclcpp::Time captureStamp(const Camera* cam, const rclcpp::Node::SharedPtr& nh)
+{
+    double t = (double)cam->getLastCaptureTime();
+    return t > 0.0 ? rclcpp::Time(static_cast<int64_t>(t * 1e9)) : nh->get_clock()->now();
+}
+
 ROS2SimulationManager::ROS2SimulationManager(Scalar stepsPerSecond, std::string scenarioFilePath, const std::shared_ptr<rclcpp::Node>& nh)
 	: SimulationManager(stepsPerSecond, Solver::SI, CollisionFilter::EXCLUSIVE), scenarioPath_(scenarioFilePath), nh_(nh)
 {
@@ -832,7 +838,7 @@ void ROS2SimulationManager::ColorCameraImageReady(ColorCamera* cam)
 {
     //Fill in the image message
     sensor_msgs::msg::Image::SharedPtr img = cameraMsgPrototypes_[cam->getName()].first;
-    img->header.stamp = nh_->get_clock()->now();
+    img->header.stamp = captureStamp(cam, nh_);
     memcpy(img->data.data(), (uint8_t*)cam->getImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
@@ -848,7 +854,7 @@ void ROS2SimulationManager::DepthCameraImageReady(DepthCamera* cam)
 {
     //Fill in the image message
     sensor_msgs::msg::Image::SharedPtr img = cameraMsgPrototypes_[cam->getName()].first;
-    img->header.stamp = nh_->get_clock()->now();
+    img->header.stamp = captureStamp(cam, nh_);
     memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
@@ -864,7 +870,7 @@ void ROS2SimulationManager::ThermalCameraImageReady(ThermalCamera* cam)
 {
     //Fill in the image message
     sensor_msgs::msg::Image::SharedPtr img = std::get<0>(dualImageCameraMsgPrototypes_[cam->getName()]);
-    img->header.stamp = nh_->get_clock()->now();
+    img->header.stamp = captureStamp(cam, nh_);
     memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
@@ -886,7 +892,7 @@ void ROS2SimulationManager::OpticalFlowCameraImageReady(OpticalFlowCamera* cam)
 {
     //Fill in the image message
     sensor_msgs::msg::Image::SharedPtr img = std::get<0>(dualImageCameraMsgPrototypes_[cam->getName()]);
-    img->header.stamp = nh_->get_clock()->now();
+    img->header.stamp = captureStamp(cam, nh_);
     memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
@@ -908,7 +914,7 @@ void ROS2SimulationManager::SegmentationCameraImageReady(SegmentationCamera* cam
 {
     //Fill in the image message
     sensor_msgs::msg::Image::SharedPtr img = std::get<0>(dualImageCameraMsgPrototypes_[cam->getName()]);
-    img->header.stamp = nh_->get_clock()->now();
+    img->header.stamp = captureStamp(cam, nh_);
     memcpy(img->data.data(), (uint16_t*)cam->getImageDataPointer(), img->step * img->height);
 
     //Fill in the info message
@@ -940,7 +946,7 @@ void ROS2SimulationManager::FLSScanReady(FLS* fls)
 {
     //Fill in the data message
     sensor_msgs::msg::Image::SharedPtr img = sonarMsgPrototypes_[fls->getName()].first;
-    img->header.stamp = nh_->get_clock()->now();
+    img->header.stamp = captureStamp(fls, nh_);
     memcpy(img->data.data(), fls->getImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
@@ -958,7 +964,7 @@ void ROS2SimulationManager::SSSScanReady(SSS* sss)
 {
     //Fill in the data message
     sensor_msgs::msg::Image::SharedPtr img = sonarMsgPrototypes_[sss->getName()].first;
-    img->header.stamp = nh_->get_clock()->now();
+    img->header.stamp = captureStamp(sss, nh_);
     memcpy(img->data.data(), sss->getImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
@@ -975,7 +981,7 @@ void ROS2SimulationManager::MSISScanReady(MSIS* msis)
 {
     //Fill in the data message
     sensor_msgs::msg::Image::SharedPtr img = sonarMsgPrototypes_[msis->getName()].first;
-    img->header.stamp = nh_->get_clock()->now();
+    img->header.stamp = captureStamp(msis, nh_);
     memcpy(img->data.data(), msis->getImageDataPointer(), img->step * img->height);
 
     //Fill in the display message
