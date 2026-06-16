@@ -24,6 +24,7 @@
 //
 
 #include "stonefish_ros2/ROS2SimulationManager.h"
+#include <limits>
 #include "stonefish_ros2/ROS2ScenarioParser.h"
 #include "stonefish_ros2/ROS2Interface.h"
 
@@ -849,7 +850,11 @@ void ROS2SimulationManager::DepthCameraImageReady(DepthCamera* cam)
     //Fill in the image message
     sensor_msgs::msg::Image::SharedPtr img = cameraMsgPrototypes_[cam->getName()].first;
     img->header.stamp = nh_->get_clock()->now();
-    memcpy(img->data.data(), (float*)cam->getImageDataPointer(), img->step * img->height);
+    // Stonefish writes 0 for no-return pixels; REP 118 requires NaN in 32FC1 depth images.
+    const float* src = (const float*)cam->getImageDataPointer();
+    float* dst = reinterpret_cast<float*>(img->data.data());
+    for(size_t i = 0; i < img->width * img->height; ++i)
+        dst[i] = src[i] > 0.f ? src[i] : std::numeric_limits<float>::quiet_NaN();
 
     //Fill in the info message
     sensor_msgs::msg::CameraInfo::SharedPtr info = cameraMsgPrototypes_[cam->getName()].second;
