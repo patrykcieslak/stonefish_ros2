@@ -727,11 +727,20 @@ std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::Shar
     info->r[8] = 1.0;
     //Intrinsic
     double tanhfov2 = tan(cam->getHorizontalFOV()/180.0*M_PI/2.0);
-    double tanvfov2 = (double)info->height/(double)info->width * tanhfov2;
+    double tanvfov2;
+    DepthCamera* dcam = dynamic_cast<DepthCamera*>(cam);
+    if(dcam != nullptr && dcam->getVerticalFOV() > 0.0)
+    {
+        tanvfov2 = tan(dcam->getVerticalFOV()/180.0*M_PI/2.0);
+    }
+    else
+    {
+        tanvfov2 = (double)info->height/(double)info->width * tanhfov2;
+    }
     info->k[2] = (double)info->width/2.0; //cx
     info->k[5] = (double)info->height/2.0; //cy
     info->k[0] = info->k[2]/tanhfov2; //fx
-    info->k[4] = info->k[5]/tanvfov2; //fy 
+    info->k[4] = info->k[5]/tanvfov2; //fy
     info->k[8] = 1.0;
     //Projection
     info->p[2] = info->k[2]; //cx'
@@ -747,7 +756,7 @@ std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::Shar
     info->roi.height = info->height;
     info->roi.width = info->width;
     info->roi.do_rectify = false;
-	
+
     return std::make_pair(img, info);
 }
 
