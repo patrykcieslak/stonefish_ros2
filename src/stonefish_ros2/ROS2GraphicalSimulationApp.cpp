@@ -45,6 +45,8 @@ void ROS2GraphicalSimulationApp::Tick()
     LoopInternal();
     if(state_ == SimulationState::FINISHED)
     {
+        StopSimulation();
+        getSimulationManager()->DestroyScenario();
         CleanUp();
         rclcpp::shutdown();
     }

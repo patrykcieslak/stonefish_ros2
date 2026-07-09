@@ -42,6 +42,8 @@ void ROS2ConsoleSimulationApp::Startup()
 
 void ROS2ConsoleSimulationApp::Shutdown()
 {
+    StopSimulation();
+    getSimulationManager()->DestroyScenario();
     CleanUp();
 }
 
