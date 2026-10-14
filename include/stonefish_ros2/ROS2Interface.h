@@ -29,7 +29,11 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
+#ifdef ROS2_BEFORE_LYRICAL
 #include "tf2_ros/transform_broadcaster.h"
+#else
+#include "tf2_ros/transform_broadcaster.hpp"
+#endif
 
 #include <Stonefish/StonefishCommon.h>
 
