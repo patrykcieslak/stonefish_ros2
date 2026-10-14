@@ -27,9 +27,12 @@
 #include "stonefish_ros2/ROS2SimulationManager.h"
 #include "stonefish_ros2/ROS2Interface.h"
 
+#ifdef ROS2_BEFORE_LYRICAL
 #include "ament_index_cpp/get_package_share_directory.hpp"
+#else
+#include "ament_index_cpp/get_package_share_path.hpp"
+#endif
 #include "std_srvs/srv/set_bool.hpp"
-#include "std_srvs/srv/trigger.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
 #include "visualization_msgs/msg/marker.hpp"
@@ -119,7 +122,11 @@ std::string ROS2ScenarioParser::SubstituteROSVars(const std::string& value)
 
         if (results[0] == "find")
         {
+#ifdef ROS2_BEFORE_LYRICAL
             std::string packagePath = ament_index_cpp::get_package_share_directory(results[1]);
+#else
+            std::string packagePath = ament_index_cpp::get_package_share_path(results[1]);
+#endif
             if (packagePath.empty())
             {
                 log.Print(MessageType::ERROR, "[ROS] Could not find package '%s'!", results[1].c_str());

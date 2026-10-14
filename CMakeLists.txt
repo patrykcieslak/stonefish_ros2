@@ -8,19 +8,22 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 
 # find dependencies
-find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(ament_index_cpp REQUIRED)
-find_package(std_srvs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(visualization_msgs REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
-find_package(pcl_conversions REQUIRED)
-find_package(image_transport REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(tf2_ros REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
+# find_package(ament_cmake REQUIRED)
+# find_package(rclcpp REQUIRED)
+# find_package(ament_index_cpp REQUIRED)
+# find_package(std_srvs REQUIRED)
+# find_package(geometry_msgs REQUIRED)
+# find_package(nav_msgs REQUIRED)
+# find_package(sensor_msgs REQUIRED)
+# find_package(visualization_msgs REQUIRED)
+# find_package(rosidl_default_generators REQUIRED)
+# find_package(pcl_conversions REQUIRED)
+# find_package(image_transport REQUIRED)
+# find_package(tf2 REQUIRED)
+# find_package(tf2_ros REQUIRED)
+
 find_package(Stonefish REQUIRED 1.6.0)
 
 # messages
@@ -44,8 +47,13 @@ rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_type
 
 find_package(PCL REQUIRED) # Interferes with rosidl_generate_interfaces and thus has to be called after
 
+if("$ENV{ROS_DISTRO}" STRLESS "lyrical")
+  add_definitions(-DROS2_BEFORE_LYRICAL)
+endif()
+
+
 # define libraries
-add_library(stonefish_ros2_interface SHARED
+ament_auto_add_library(stonefish_ros2_interface SHARED
   src/${PROJECT_NAME}/ROS2ConsoleSimulationApp.cpp
   src/${PROJECT_NAME}/ROS2GraphicalSimulationApp.cpp
   src/${PROJECT_NAME}/ROS2SimulationManager.cpp
@@ -57,47 +65,47 @@ target_include_directories(stonefish_ros2_interface
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(stonefish_ros2_interface
- rclcpp 
- ament_index_cpp 
- std_srvs
- geometry_msgs
- nav_msgs
- visualization_msgs
- sensor_msgs
- PCL
- pcl_conversions
- image_transport
- tf2
- tf2_ros
-)
+# ament_target_dependencies(stonefish_ros2_interface
+#  rclcpp
+#  ament_index_cpp
+#  std_srvs
+#  geometry_msgs
+#  nav_msgs
+#  visualization_msgs
+#  sensor_msgs
+#  PCL
+#  pcl_conversions
+#  image_transport
+#  tf2
+#  tf2_ros
+# )
 ament_export_libraries(stonefish_ros2_interface)
 ament_export_include_directories(include)
 
 # define exacutables
-add_executable(stonefish_simulator src/stonefish_simulator.cpp)
+ament_auto_add_executable(stonefish_simulator src/stonefish_simulator.cpp)
 target_link_libraries(stonefish_simulator stonefish_ros2_interface)
-ament_target_dependencies(stonefish_simulator rclcpp)
+# ament_target_dependencies(stonefish_simulator rclcpp)
 
-add_executable(stonefish_simulator_nogpu src/stonefish_simulator_nogpu.cpp)
+ament_auto_add_executable(stonefish_simulator_nogpu src/stonefish_simulator_nogpu.cpp)
 target_link_libraries(stonefish_simulator_nogpu stonefish_ros2_interface)
-ament_target_dependencies(stonefish_simulator_nogpu rclcpp)
+# ament_target_dependencies(stonefish_simulator_nogpu rclcpp)
 
 # installation
-install(
-  TARGETS stonefish_ros2_interface
-  LIBRARY DESTINATION lib
-  INCLUDES DESTINATION include
-)
+# install(
+#   TARGETS stonefish_ros2_interface
+#   LIBRARY DESTINATION lib
+#   INCLUDES DESTINATION include
+# )
 install(
   DIRECTORY include
   DESTINATION include
 )
 
-install(
-  TARGETS stonefish_simulator stonefish_simulator_nogpu
-  DESTINATION lib/${PROJECT_NAME}
-)
+# install(
+#   TARGETS stonefish_simulator stonefish_simulator_nogpu
+#   DESTINATION lib/${PROJECT_NAME}
+# )
 install(
   DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
@@ -115,4 +123,4 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_package()
+ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

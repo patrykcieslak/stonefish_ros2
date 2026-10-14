@@ -39,7 +39,11 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
+#ifdef ROS2_BEFORE_LYRICAL
 #include "tf2_ros/transform_broadcaster.h"
+#else
+#include "tf2_ros/transform_broadcaster.hpp"
+#endif
 #include "stonefish_ros2/srv/sonar_settings.hpp"
 #include "stonefish_ros2/srv/sonar_settings2.hpp"
 #include "stonefish_ros2/srv/respawn.hpp"
