@@ -45,6 +45,7 @@
 #include "stonefish_ros2/srv/sonar_settings2.hpp"
 #include "stonefish_ros2/srv/respawn.hpp"
 #include "stonefish_ros2/SceneLandmarks.h"
+#include "stonefish_ros2/SceneLaunchers.h"
 #include "vortex_msgs/msg/waypoint.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
 #include <mutex>
@@ -131,6 +132,7 @@ namespace sf
         std::map<std::string, image_transport::Publisher>& getImagePublishers();
         std::map<std::string, rclcpp::SubscriptionBase::SharedPtr>& getSubscribers();
         SceneLandmarks& getLandmarks();
+        SceneLaunchers& getLaunchers();
         //! Shows the waypoint the vehicle is going to (<ros_waypoint topic=""/>).
         void SubscribeWaypoint(const std::string& topic);
         //! The latest waypoint pose, in the world frame; false if none has been received.
@@ -201,6 +203,7 @@ namespace sf
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_;
         std::shared_ptr<ROS2Interface> interface_;
         std::unique_ptr<SceneLandmarks> landmarks_;
+        std::unique_ptr<SceneLaunchers> launchers_;
         rclcpp::Subscription<vortex_msgs::msg::Waypoint>::SharedPtr waypointSub_;
         std::optional<Transform> waypoint_;
         std::mutex waypointMutex_;

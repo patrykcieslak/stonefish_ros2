@@ -58,6 +58,7 @@ add_library(stonefish_ros2_interface SHARED
   src/${PROJECT_NAME}/ROS2ScenarioParser.cpp
   src/${PROJECT_NAME}/ROS2Interface.cpp
   src/${PROJECT_NAME}/SceneLandmarks.cpp
+  src/${PROJECT_NAME}/SceneLaunchers.cpp
   src/${PROJECT_NAME}/SceneEditor.cpp
 )
 target_link_libraries(stonefish_ros2_interface Stonefish::Stonefish "${cpp_typesupport_target}")

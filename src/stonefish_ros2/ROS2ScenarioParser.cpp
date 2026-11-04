@@ -216,6 +216,24 @@ bool ROS2ScenarioParser::PreProcess(XMLNode* root, const std::map<std::string, s
             topic, frameId, rate, attr("profile"), attr("front_camera"), attr("down_camera"));
     }
 
+    //Objects the vehicle lets go of, on a service. See SceneLaunchers.h
+    for(XMLElement* l = root->FirstChildElement("ros_launcher"); l != nullptr; l = l->NextSiblingElement("ros_launcher"))
+    {
+        auto attr = [&](const char* name) { const char* v = l->Attribute(name); return std::string(v != nullptr ? v : ""); };
+        int count = 0;
+        double speed = 0.0;
+        l->QueryIntAttribute("count", &count);
+        l->QueryDoubleAttribute("speed", &speed);
+        if(attr("service").empty() || attr("robot").empty() || attr("objects").empty() || attr("base_frame").empty()
+           || attr("frame").empty() || count < 1)
+        {
+            log.Print(MessageType::ERROR, "<ros_launcher> needs service, robot, objects, count, base_frame and frame!");
+            return false;
+        }
+        ((ROS2SimulationManager*)getSimulationManager())->getLaunchers().Add(
+            attr("service"), attr("robot"), attr("objects"), count, speed, attr("base_frame"), attr("frame"));
+    }
+
     //The waypoint the vehicle is going to, drawn in the 3D view: <ros_waypoint topic="/orca/debug/waypoint"/>
     if((item = root->FirstChildElement("ros_waypoint")) != nullptr)
     {

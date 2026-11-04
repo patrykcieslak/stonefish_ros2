@@ -90,6 +90,7 @@ ROS2SimulationManager::ROS2SimulationManager(Scalar stepsPerSecond, std::string 
     interface_ = std::make_shared<ROS2Interface>(nh_);
     tf_ = std::make_unique<tf2_ros::TransformBroadcaster>(nh_);
     landmarks_ = std::make_unique<SceneLandmarks>(this, nh_);
+    launchers_ = std::make_unique<SceneLaunchers>(this, nh_);
 }
 
 ROS2SimulationManager::~ROS2SimulationManager()
@@ -165,6 +166,11 @@ bool ROS2SimulationManager::RespawnROS2Robot(const std::string& robotName, const
         }
     }
     return false;
+}
+
+SceneLaunchers& ROS2SimulationManager::getLaunchers()
+{
+    return *launchers_;
 }
 
 SceneLandmarks& ROS2SimulationManager::getLandmarks()
@@ -312,6 +318,7 @@ void ROS2SimulationManager::BuildScenario()
 {
     // Run parser (it registers the <landmark> tags again)
     landmarks_->Clear();
+    launchers_->Clear();
     ROS2ScenarioParser parser(this, nh_);
     bool success = parser.Parse(scenarioPath_);
     if(success)
@@ -346,6 +353,7 @@ void ROS2SimulationManager::BuildScenario()
 
 void ROS2SimulationManager::DestroyScenario()
 {
+    launchers_->Clear();
     for(auto it = imgPubs_.begin(); it != imgPubs_.end(); ++it)
         it->second.shutdown();
 
@@ -363,6 +371,8 @@ void ROS2SimulationManager::DestroyScenario()
 void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
 {
     (void)timeStep; // Suppress warning
+
+    launchers_->Step();
 
     ////////////////////////////////////////SENSORS//////////////////////////////////////////////
     unsigned int id = 0;
