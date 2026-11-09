@@ -5,7 +5,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
@@ -52,12 +52,11 @@ add_library(stonefish_ros2_interface SHARED
   src/${PROJECT_NAME}/ROS2ScenarioParser.cpp
   src/${PROJECT_NAME}/ROS2Interface.cpp
 )
-target_link_libraries(stonefish_ros2_interface Stonefish::Stonefish "${cpp_typesupport_target}")
-target_include_directories(stonefish_ros2_interface
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(stonefish_ros2_interface
+target_link_libraries(stonefish_ros2_interface PUBLIC Stonefish::Stonefish "${cpp_typesupport_target}")
+target_include_directories(stonefish_ros2_interface PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(stonefish_ros2_interface PUBLIC
  rclcpp 
  ament_index_cpp 
  std_srvs
@@ -71,8 +70,24 @@ ament_target_dependencies(stonefish_ros2_interface
  tf2
  tf2_ros
 )
+ament_export_targets(stonefish_ros2_interface_export HAS_LIBRARY_TARGET)
 ament_export_libraries(stonefish_ros2_interface)
 ament_export_include_directories(include)
+ament_export_dependencies(
+  rclcpp
+  ament_index_cpp
+  std_srvs
+  geometry_msgs
+  nav_msgs
+  visualization_msgs
+  sensor_msgs
+  pcl_conversions
+  image_transport
+  tf2
+  tf2_ros
+  Stonefish
+  PCL
+)
 
 # define exacutables
 add_executable(stonefish_simulator src/stonefish_simulator.cpp)
@@ -86,14 +101,15 @@ ament_target_dependencies(stonefish_simulator_nogpu rclcpp)
 # installation
 install(
   TARGETS stonefish_ros2_interface
+  EXPORT stonefish_ros2_interface_export
+  ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
-  INCLUDES DESTINATION include
+  RUNTIME DESTINATION bin
 )
 install(
-  DIRECTORY include
+  DIRECTORY include/
   DESTINATION include
 )
-
 install(
   TARGETS stonefish_simulator stonefish_simulator_nogpu
   DESTINATION lib/${PROJECT_NAME}

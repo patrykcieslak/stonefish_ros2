@@ -20,7 +20,7 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 02/10/23.
-//  Copyright (c) 2023-2024 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2026 Patryk Cieslak. All rights reserved.
 //
 
 #include "rclcpp/rclcpp.hpp"
@@ -40,21 +40,29 @@ public:
                            sf::Scalar rate) 
                            : Node("stonefish_simulator")
     {   
-        sf::ROS2SimulationManager* manager = new sf::ROS2SimulationManager(rate, scenarioPath, std::shared_ptr<rclcpp::Node>(this));
-        app_ = std::shared_ptr<sf::ROS2GraphicalSimulationApp>(new sf::ROS2GraphicalSimulationApp("Stonefish Simulator", 
-                                                                                                 dataPath, s, h, manager));
+        // The app owns the manager, so its node handle must not own this node.
+        app_ = std::make_unique<sf::ROS2GraphicalSimulationApp>("Stonefish Simulator", dataPath, s, h,
+            std::make_unique<sf::ROS2SimulationManager>(rate, scenarioPath,
+                std::shared_ptr<rclcpp::Node>(this, [](rclcpp::Node*) {})));
         app_->Startup();
-        tickTimer_ = this->create_wall_timer(16667us, std::bind(&sf::ROS2GraphicalSimulationApp::Tick, app_));
+        tickTimer_ = this->create_wall_timer(16667us, std::bind(&sf::ROS2GraphicalSimulationApp::Tick, app_.get()));
     };
 
+    void Shutdown()
+    {
+        tickTimer_.reset();
+        if (app_)
+            app_->Shutdown();
+    }
+
 private:
-    std::shared_ptr<sf::ROS2GraphicalSimulationApp> app_;
+    std::unique_ptr<sf::ROS2GraphicalSimulationApp> app_;
     rclcpp::TimerBase::SharedPtr tickTimer_;
 };
 
 int main(int argc, char **argv)
 {
-	rclcpp::init(argc, argv, rclcpp::InitOptions(), rclcpp::SignalHandlerOptions::None);
+	rclcpp::init(argc, argv);
     
     //Check number of command line arguments
 	if(argc < 7)
@@ -100,6 +108,8 @@ int main(int argc, char **argv)
         s.aa = sf::RenderQuality::MEDIUM;
         s.ssr = sf::RenderQuality::MEDIUM;
     }
+    // Disable vertical sync to allow for higher frame rates
+    s.verticalSync = false;
 
     // Initialize GUI settings
     sf::HelperSettings h;
@@ -113,5 +123,7 @@ int main(int argc, char **argv)
     // Start simulation
     std::shared_ptr<StonefishNode> node(new StonefishNode(scenarioPath, dataPath, s, h, rate));
     rclcpp::spin(node);
+    node->Shutdown();
+    rclcpp::shutdown();
     return 0;
 }

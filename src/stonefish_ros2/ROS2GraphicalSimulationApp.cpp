@@ -20,7 +20,7 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 02/10/23.
-//  Copyright (c) 2023-2025 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2026 Patryk Cieslak. All rights reserved.
 //
 
 #include "stonefish_ros2/ROS2SimulationManager.h"
@@ -29,8 +29,8 @@
 namespace sf
 {
 
-ROS2GraphicalSimulationApp::ROS2GraphicalSimulationApp(std::string title, std::string dataPath, RenderSettings s, HelperSettings h, ROS2SimulationManager* sim)
-    : GraphicalSimulationApp(title, dataPath, s, h, sim)
+ROS2GraphicalSimulationApp::ROS2GraphicalSimulationApp(std::string title, std::string dataPath, RenderSettings s, HelperSettings h, std::unique_ptr<ROS2SimulationManager> sim)
+    : GraphicalSimulationApp(title, dataPath, s, h, std::move(sim)), cleanedUp_{false}
 {
 }
 
@@ -45,8 +45,17 @@ void ROS2GraphicalSimulationApp::Tick()
     LoopInternal();
     if(state_ == SimulationState::FINISHED)
     {
-        CleanUp();
+        Shutdown();
         rclcpp::shutdown();
+    }
+}
+
+void ROS2GraphicalSimulationApp::Shutdown()
+{
+    if (!cleanedUp_)
+    {
+        CleanUp();
+        cleanedUp_ = true;
     }
 }
 

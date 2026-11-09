@@ -20,11 +20,10 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 02/10/23.
-//  Copyright (c) 2023 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2026 Patryk Cieslak. All rights reserved.
 //
 
-#ifndef __Stonefish_ROS2GraphicalSimulationApp__
-#define __Stonefish_ROS2GraphicalSimulationApp__
+#pragma once
 
 #include <Stonefish/core/GraphicalSimulationApp.h>
 
@@ -35,10 +34,12 @@ namespace sf
     class ROS2GraphicalSimulationApp : public GraphicalSimulationApp
     {
     public:
-        ROS2GraphicalSimulationApp(std::string title, std::string dataPath, RenderSettings s, HelperSettings h, ROS2SimulationManager* sim);
+        ROS2GraphicalSimulationApp(std::string title, std::string dataPath, RenderSettings s, HelperSettings h, std::unique_ptr<ROS2SimulationManager> sim);
         void Startup();
         void Tick();
+        void Shutdown();
+
+    private:
+        bool cleanedUp_;
     };
 }
-
-#endif

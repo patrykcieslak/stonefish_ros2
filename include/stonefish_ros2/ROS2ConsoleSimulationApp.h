@@ -20,11 +20,10 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 05/10/23.
-//  Copyright (c) 2023 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2026 Patryk Cieslak. All rights reserved.
 //
 
-#ifndef __Stonefish_ROS2ConsoleSimulationApp__
-#define __Stonefish_ROS2ConsoleSimulationApp__
+#pragma once
 
 #include <Stonefish/core/ConsoleSimulationApp.h>
 
@@ -35,10 +34,8 @@ namespace sf
     class ROS2ConsoleSimulationApp : public ConsoleSimulationApp
     {
     public:
-        ROS2ConsoleSimulationApp(std::string title, std::string dataPath, ROS2SimulationManager* sim);
+        ROS2ConsoleSimulationApp(std::string_view title, std::string_view dataPath, std::unique_ptr<ROS2SimulationManager> sim);
         void Startup();
         void Shutdown();
     };
 }
-
-#endif

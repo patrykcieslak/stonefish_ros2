@@ -20,7 +20,7 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 05/10/23.
-//  Copyright (c) 2023 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2026 Patryk Cieslak. All rights reserved.
 //
 
 #include "rclcpp/rclcpp.hpp"
@@ -38,8 +38,9 @@ public:
                            sf::Scalar rate) 
                            : Node("stonefish_simulator_nogpu")
     {   
-        sf::ROS2SimulationManager* manager = new sf::ROS2SimulationManager(rate, scenarioPath, std::shared_ptr<rclcpp::Node>(this));
-        app_ = std::shared_ptr<sf::ROS2ConsoleSimulationApp>(new sf::ROS2ConsoleSimulationApp("Stonefish Simulator", dataPath, manager));
+        app_ = std::make_unique<sf::ROS2ConsoleSimulationApp>("Stonefish Simulator", dataPath,
+            std::make_unique<sf::ROS2SimulationManager>(rate, scenarioPath,
+                std::shared_ptr<rclcpp::Node>(this, [](rclcpp::Node*) {})));
         app_->Startup();
     };
 
@@ -49,12 +50,12 @@ public:
     };
 
 private:
-    std::shared_ptr<sf::ROS2ConsoleSimulationApp> app_;
+    std::unique_ptr<sf::ROS2ConsoleSimulationApp> app_;
 };
 
 int main(int argc, char **argv)
 {
-	rclcpp::init(argc, argv, rclcpp::InitOptions(), rclcpp::SignalHandlerOptions::None);
+	rclcpp::init(argc, argv);
     
     //Check number of command line arguments
 	if(argc < 4)

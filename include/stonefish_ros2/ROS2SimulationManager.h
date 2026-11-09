@@ -20,11 +20,10 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 02/10/23.
-//  Copyright (c) 2023-2025 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2026 Patryk Cieslak. All rights reserved.
 //
 
-#ifndef __Stonefish_ROS2SimulationManager__
-#define __Stonefish_ROS2SimulationManager__
+#pragma once
 
 #include "rclcpp/rclcpp.hpp"
 #include "image_transport/image_transport.hpp"
@@ -53,6 +52,7 @@ namespace sf
     class Uniform;
     class Jet;
     class ManualTrajectory;
+    class LinkActuator;
     class SimpleThruster;
     class Thruster;
     class Propeller;
@@ -65,7 +65,7 @@ namespace sf
     class OpticalFlowCamera;
     class SegmentationCamera;
     class EventBasedCamera;
-    class Multibeam2;
+    class Lidar;
     class FLS;
     class SSS;
     class MSIS;
@@ -112,23 +112,23 @@ namespace sf
         virtual void OpticalFlowCameraImageReady(OpticalFlowCamera* cam);
         virtual void SegmentationCameraImageReady(SegmentationCamera* cam);
         virtual void EventBasedCameraOutputReady(EventBasedCamera* cam);
-		virtual void Multibeam2ScanReady(Multibeam2* mb);
+		virtual void LidarScanReady(Lidar* lidar);
 		virtual void FLSScanReady(FLS* fls);
 		virtual void SSSScanReady(SSS* sss);
 		virtual void MSISScanReady(MSIS* msis);
 
-        void AddROS2Robot(const std::shared_ptr<ROS2Robot>& robot);
+        void AddROS2Robot(std::unique_ptr<ROS2Robot> robot);
         bool RespawnROS2Robot(const std::string& robotName, const Transform& origin);
         void SimulationClockSleep(uint64_t us);
-        uint64_t getSimulationClock() const;
-        std::map<std::string, rclcpp::ServiceBase::SharedPtr>& getServices();
-        std::map<std::string, rclcpp::PublisherBase::SharedPtr>& getPublishers();
-        std::map<std::string, image_transport::Publisher>& getImagePublishers();
-        std::map<std::string, rclcpp::SubscriptionBase::SharedPtr>& getSubscribers();
-        std::shared_ptr<image_transport::ImageTransport> getImageTransportHandle();
-        std::map<std::string, std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr>>& getCameraMsgPrototypes();
-        std::map<std::string, std::tuple<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr, sensor_msgs::msg::Image::SharedPtr>>& getDualImageCameraMsgPrototypes();
-		std::map<std::string, std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr>>& getSonarMsgPrototypes();        
+        uint64_t GetSimulationClock() const;
+        std::unordered_map<std::string, rclcpp::ServiceBase::SharedPtr>& GetServices();
+        std::unordered_map<std::string, rclcpp::PublisherBase::SharedPtr>& GetPublishers();
+        std::unordered_map<std::string, image_transport::Publisher>& GetImagePublishers();
+        std::unordered_map<std::string, rclcpp::SubscriptionBase::SharedPtr>& GetSubscribers();
+        std::shared_ptr<image_transport::ImageTransport> GetImageTransportHandle();
+        std::unordered_map<std::string, std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr>>& GetCameraMsgPrototypes();
+        std::unordered_map<std::string, std::tuple<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::CameraInfo::SharedPtr, sensor_msgs::msg::Image::SharedPtr>>& GetDualImageCameraMsgPrototypes();
+		std::unordered_map<std::string, std::pair<sensor_msgs::msg::Image::SharedPtr, sensor_msgs::msg::Image::SharedPtr>>& GetSonarMsgPrototypes();        
 
         void EnableCurrentsService(const std_srvs::srv::Trigger::Request::SharedPtr req, 
                             std_srvs::srv::Trigger::Response::SharedPtr res);
@@ -138,7 +138,7 @@ namespace sf
                              stonefish_ros2::srv::Respawn::Response::SharedPtr res);
         void UniformVFCallback(const geometry_msgs::msg::Vector3::SharedPtr msg, Uniform* vf);
         void JetVFCallback(const std_msgs::msg::Float64::SharedPtr msg, Jet* vf);
-        void ActuatorOriginCallback(const geometry_msgs::msg::Transform::SharedPtr msg, Actuator* act);
+        void ActuatorOriginCallback(const geometry_msgs::msg::Transform::SharedPtr msg, LinkActuator* act);
         void TrajectoryCallback(const nav_msgs::msg::Odometry::SharedPtr msg, ManualTrajectory* tr);
         void PushCallback(const std_msgs::msg::Float64::SharedPtr msg, Push* push);
         void SimpleThrusterCallback(const std_msgs::msg::Float64::SharedPtr msg, SimpleThruster* th);
@@ -157,14 +157,14 @@ namespace sf
         void MSISService(const stonefish_ros2::srv::SonarSettings2::Request::SharedPtr req,
                         stonefish_ros2::srv::SonarSettings2::Response::SharedPtr res, MSIS* msis);
         
-        void ThrustersCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg, std::shared_ptr<ROS2Robot> robot);
-        void PropellersCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg, std::shared_ptr<ROS2Robot> robot);
-        void RuddersCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg, std::shared_ptr<ROS2Robot> robot);
-        void ServosCallback(const sensor_msgs::msg::JointState::SharedPtr msg, std::shared_ptr<ROS2Robot> robot);
+        void ThrustersCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg, ROS2Robot* robot);
+        void PropellersCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg, ROS2Robot* robot);
+        void RuddersCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg, ROS2Robot* robot);
+        void ServosCallback(const sensor_msgs::msg::JointState::SharedPtr msg, ROS2Robot* robot);
         
-        void JointCallback(const std_msgs::msg::Float64::SharedPtr msg,  std::shared_ptr<ROS2Robot> robot, 
+        void JointCallback(const std_msgs::msg::Float64::SharedPtr msg,  ROS2Robot* robot, 
                                                             ServoControlMode mode, const std::string& jointName);
-        void JointGroupCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg,  std::shared_ptr<ROS2Robot> robot, 
+        void JointGroupCallback(const std_msgs::msg::Float64MultiArray::SharedPtr msg, ROS2Robot* robot, 
                                                             ServoControlMode mode, const std::vector<std::string>& jointNames);
         void GlueService(const std_srvs::srv::SetBool::Request::SharedPtr req,
                             std_srvs::srv::SetBool::Response::SharedPtr res, FixedJoint* fix);
@@ -174,22 +174,20 @@ namespace sf
 
     protected:
         std::string scenarioPath_;
-        std::vector<std::shared_ptr<ROS2Robot>> rosRobots_;
+        std::vector<std::unique_ptr<ROS2Robot>> rosRobots_;
         std::shared_ptr<rclcpp::Node> nh_;
         std::shared_ptr<image_transport::ImageTransport> it_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_;
         std::shared_ptr<ROS2Interface> interface_;
-        std::map<std::string, rclcpp::ServiceBase::SharedPtr> srvs_;
-        std::map<std::string, rclcpp::PublisherBase::SharedPtr> pubs_;
-        std::map<std::string, rclcpp::SubscriptionBase::SharedPtr> subs_;
-        std::map<std::string, image_transport::Publisher> imgPubs_;
-        std::map<std::string, std::pair<sensor_msgs::msg::Image::SharedPtr, 
+        std::unordered_map<std::string, rclcpp::ServiceBase::SharedPtr> srvs_;
+        std::unordered_map<std::string, rclcpp::PublisherBase::SharedPtr> pubs_;
+        std::unordered_map<std::string, rclcpp::SubscriptionBase::SharedPtr> subs_;
+        std::unordered_map<std::string, image_transport::Publisher> imgPubs_;
+        std::unordered_map<std::string, std::pair<sensor_msgs::msg::Image::SharedPtr, 
             sensor_msgs::msg::CameraInfo::SharedPtr>> cameraMsgPrototypes_;
-        std::map<std::string, std::tuple<sensor_msgs::msg::Image::SharedPtr,
+        std::unordered_map<std::string, std::tuple<sensor_msgs::msg::Image::SharedPtr,
             sensor_msgs::msg::CameraInfo::SharedPtr, sensor_msgs::msg::Image::SharedPtr>> dualImageCameraMsgPrototypes_;
-        std::map<std::string, std::pair<sensor_msgs::msg::Image::SharedPtr, 
+        std::unordered_map<std::string, std::pair<sensor_msgs::msg::Image::SharedPtr, 
             sensor_msgs::msg::Image::SharedPtr>> sonarMsgPrototypes_;
     };
 }
-
-#endif

@@ -20,11 +20,10 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 04/10/23.
-//  Copyright (c) 2023-2025 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2026 Patryk Cieslak. All rights reserved.
 //
 
-#ifndef __Stonefish_ROS2Interface__
-#define __Stonefish_ROS2Interface__
+#pragma once
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
@@ -52,7 +51,7 @@ namespace sf
     class EventBasedCamera;
     class Multibeam;
     class Profiler;
-    class Multibeam2;
+    class Lidar;
     class FLS;
     class SSS;
     class MSIS;
@@ -80,7 +79,7 @@ namespace sf
         void PublishMultibeam(rclcpp::PublisherBase::SharedPtr pub, Multibeam* mb) const;
         void PublishMultibeamPCL(rclcpp::PublisherBase::SharedPtr pub, Multibeam* mb) const;
         void PublishProfiler(rclcpp::PublisherBase::SharedPtr pub, Profiler* prof) const;
-        void PublishMultibeam2(rclcpp::PublisherBase::SharedPtr pub, Multibeam2* mb) const;
+        void PublishLidar(rclcpp::PublisherBase::SharedPtr pub, Lidar* lidar) const;
         void PublishContact(rclcpp::PublisherBase::SharedPtr pub, Contact* cnt) const;
         void PublishUSBL(rclcpp::PublisherBase::SharedPtr pub, rclcpp::PublisherBase::SharedPtr pubInfo, USBL* usbl) const;
         void PublishTrajectoryState(rclcpp::PublisherBase::SharedPtr pubOdom, rclcpp::PublisherBase::SharedPtr pubIter, AnimatedEntity* anim) const;
@@ -98,4 +97,3 @@ namespace sf
         std::shared_ptr<rclcpp::Node> nh_;
     };
 }
-#endif
