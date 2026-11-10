@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.8)
 project(stonefish_ros2 VERSION 1.6.0)
 
+if(POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
+endif()
+if(POLICY CMP0144)
+  cmake_policy(SET CMP0144 NEW)
+  set(CMAKE_POLICY_DEFAULT_CMP0144 NEW)
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -42,7 +50,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_typesupport_cpp)
 
-find_package(PCL REQUIRED) # Interferes with rosidl_generate_interfaces and thus has to be called after
+find_package(PCL REQUIRED COMPONENTS common) # Interferes with rosidl_generate_interfaces and thus has to be called after
 
 # define libraries
 add_library(stonefish_ros2_interface SHARED
@@ -56,6 +64,9 @@ target_link_libraries(stonefish_ros2_interface PUBLIC Stonefish::Stonefish "${cp
 target_include_directories(stonefish_ros2_interface PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+target_include_directories(stonefish_ros2_interface SYSTEM PRIVATE ${PCL_INCLUDE_DIRS})
+target_compile_options(stonefish_ros2_interface PRIVATE ${PCL_DEFINITIONS})
+target_link_libraries(stonefish_ros2_interface PRIVATE ${PCL_LIBRARIES})
 ament_target_dependencies(stonefish_ros2_interface PUBLIC
  rclcpp 
  ament_index_cpp 
@@ -64,7 +75,6 @@ ament_target_dependencies(stonefish_ros2_interface PUBLIC
  nav_msgs
  visualization_msgs
  sensor_msgs
- PCL
  pcl_conversions
  image_transport
  tf2
