@@ -1,12 +1,12 @@
 /*    
     This file is a part of stonefish_ros2.
 
-    stonefish_ros is free software: you can redistribute it and/or modify
+    stonefish_ros2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    stonefish_ros is distributed in the hope that it will be useful,
+    stonefish_ros2 is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -27,6 +27,8 @@
 #include "stonefish_ros2/ROS2ScenarioParser.h"
 #include "stonefish_ros2/ROS2Interface.h"
 #include "stonefish_ros2/ROS2SensorPluginInterface.h"
+#include "stonefish_ros2/ROS2ActuatorPluginInterface.h"
+#include "stonefish_ros2/ROS2CommPluginInterface.h"
 
 #include "stonefish_ros2/msg/thruster_state.hpp"
 #include "stonefish_ros2/msg/debug_physics.hpp"
@@ -322,7 +324,6 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                 }
             }
                 break;
-
             case CommType::USBL:
             {
                 if(comm->IsNewDataAvailable())
@@ -342,7 +343,6 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                 }
             }
                 break;
-
             case CommType::OPTICAL:
             {
                 std_msgs::msg::Float64 msg;
@@ -362,7 +362,13 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                 }
             }
                 break;
-
+            case CommType::PLUGIN:
+            {
+                ROS2CommPluginInterface* iface = dynamic_cast<ROS2CommPluginInterface*>(comm);
+                if (iface != nullptr)
+                    iface->Publish(nh_, pubs_);
+            }
+                break;
             default:
                 break;
         }
@@ -657,7 +663,6 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                         }
                     }
                         break;
-
                     case LinkActuatorType::VBS:
                     {
                         auto it = pubs_.find(actuator->GetName());
@@ -669,7 +674,6 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                         }
                     }
                         break;
-
                     case LinkActuatorType::SUCTION_CUP:
                     {
                         auto it = pubs_.find(actuator->GetName());
@@ -679,6 +683,13 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                             msg.data = static_cast<SuctionCup*>(actuator)->GetPump();
                             std::static_pointer_cast<rclcpp::Publisher<std_msgs::msg::Bool>>(it->second)->publish(msg);
                         }
+                    }
+                        break;
+                    case LinkActuatorType::PLUGIN:
+                    {
+                        ROS2ActuatorPluginInterface* iface = dynamic_cast<ROS2ActuatorPluginInterface*>(actuator);
+                        if (iface != nullptr)
+                            iface->Publish(nh_, pubs_);
                     }
                         break;
                     default:
@@ -726,6 +737,13 @@ void ROS2SimulationManager::SimulationStepCompleted(Scalar timeStep)
                                 srv->SetDesiredPosition(it->second.second);
                             }
                         }
+                    }
+                        break;
+                    case JointActuatorType::PLUGIN:
+                    {
+                        ROS2ActuatorPluginInterface* iface = dynamic_cast<ROS2ActuatorPluginInterface*>(actuator);
+                        if (iface != nullptr)
+                            iface->Publish(nh_, pubs_);
                     }
                         break;
                     default:

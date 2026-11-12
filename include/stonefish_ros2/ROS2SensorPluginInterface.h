@@ -1,12 +1,12 @@
 /*    
-    This file is a part of stonefish_ros.
+    This file is a part of stonefish_ros2.
 
-    stonefish_ros is free software: you can redistribute it and/or modify
+    stonefish_ros2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    stonefish_ros is distributed in the hope that it will be useful,
+    stonefish_ros2 is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -17,7 +17,7 @@
 
 //
 //  ROS2SensorPluginInterface.h
-//  stonefish_ros
+//  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 05/11/26.
 //  Copyright (c) 2026 Patryk Cieslak. All rights reserved.
