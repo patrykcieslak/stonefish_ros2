@@ -1,12 +1,12 @@
 /*    
     This file is a part of stonefish_ros2.
 
-    stonefish_ros is free software: you can redistribute it and/or modify
+    stonefish_ros2 is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    stonefish_ros is distributed in the hope that it will be useful,
+    stonefish_ros2 is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -20,11 +20,10 @@
 //  stonefish_ros2
 //
 //  Created by Patryk Cieslak on 04/10/23.
-//  Copyright (c) 2023-2025 Patryk Cieslak. All rights reserved.
+//  Copyright (c) 2023-2026 Patryk Cieslak. All rights reserved.
 //
 
-#ifndef __Stonefish_ROS2Interface__
-#define __Stonefish_ROS2Interface__
+#pragma once
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
@@ -52,7 +51,7 @@ namespace sf
     class EventBasedCamera;
     class Multibeam;
     class Profiler;
-    class Multibeam2;
+    class Lidar;
     class FLS;
     class SSS;
     class MSIS;
@@ -80,7 +79,7 @@ namespace sf
         void PublishMultibeam(rclcpp::PublisherBase::SharedPtr pub, Multibeam* mb) const;
         void PublishMultibeamPCL(rclcpp::PublisherBase::SharedPtr pub, Multibeam* mb) const;
         void PublishProfiler(rclcpp::PublisherBase::SharedPtr pub, Profiler* prof) const;
-        void PublishMultibeam2(rclcpp::PublisherBase::SharedPtr pub, Multibeam2* mb) const;
+        void PublishLidar(rclcpp::PublisherBase::SharedPtr pub, Lidar* lidar) const;
         void PublishContact(rclcpp::PublisherBase::SharedPtr pub, Contact* cnt) const;
         void PublishUSBL(rclcpp::PublisherBase::SharedPtr pub, rclcpp::PublisherBase::SharedPtr pubInfo, USBL* usbl) const;
         void PublishTrajectoryState(rclcpp::PublisherBase::SharedPtr pubOdom, rclcpp::PublisherBase::SharedPtr pubIter, AnimatedEntity* anim) const;
@@ -98,4 +97,3 @@ namespace sf
         std::shared_ptr<rclcpp::Node> nh_;
     };
 }
-#endif
