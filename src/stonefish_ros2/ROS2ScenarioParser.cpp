@@ -268,7 +268,7 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
     unsigned int aID = 0;
     Actuator* act;
 
-    while((act = robot->GetActuator(aID++)) != NULL)
+    while((act = robot->GetActuator(aID++)) != nullptr)
     {
         if (act->GetType() == ActuatorType::LINK)
         {
@@ -279,15 +279,12 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
                 case LinkActuatorType::THRUSTER:
                     ++nThrusters;
                     break;
-
                 case LinkActuatorType::PROPELLER:
                     ++nPropellers;
                     break;
-
                 case LinkActuatorType::RUDDER:
                     ++nRudders;
                     break;
-
                 default:
                     break;
             }
@@ -300,11 +297,9 @@ bool ROS2ScenarioParser::ParseRobot(XMLElement* element)
                 case JointActuatorType::SERVO:
                     ++nServos;
                     break;
-
                 case JointActuatorType::MOTOR:
                     ++nMotors;
                     break;
-
                 default:
                     break;
             }
@@ -785,14 +780,12 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                         pubs[sensorName] = nh_->create_publisher<geometry_msgs::msg::WrenchStamped>(it->second, queueSize);
                 }
                     break;
-
                 case ScalarSensorType::ENCODER:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                         pubs[sensorName] = nh_->create_publisher<sensor_msgs::msg::JointState>(it->second, queueSize);
                 }
                     break;
-
                 case ScalarSensorType::PLUGIN:
                 {
                     ROS2SensorPluginInterface* iface = dynamic_cast<ROS2SensorPluginInterface*>(sens.get());
@@ -800,7 +793,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                         iface->CreatePublishers(nh_, pubs, pubTopics);
                 }
                     break;
-
                 default:
                     log.Print(MessageType::ERROR, "[ROS] Sensor '%s' not supported!", sensorName.c_str());
                     RCLCPP_ERROR(nh_->get_logger(), "Scenario parser: Sensor '%s' not supported!", sensorName.c_str());
@@ -808,7 +800,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
             }
         }
             break;
-
         case SensorType::LINK:
         {
             switch(static_cast<ScalarSensor*>(sens.get())->GetScalarSensorType())
@@ -819,17 +810,14 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                         pubs[sensorName] = nh_->create_publisher<geometry_msgs::msg::AccelWithCovarianceStamped>(it->second, queueSize);
                 }
                     break;
-
                 case ScalarSensorType::GYRO:
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                         pubs[sensorName] = nh_->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(it->second, queueSize);
                     break;
-
                 case ScalarSensorType::IMU:
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                         pubs[sensorName] = nh_->create_publisher<sensor_msgs::msg::Imu>(it->second, queueSize);
                     break;
-
                 case ScalarSensorType::DVL:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
@@ -838,21 +826,18 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                         pubs[sensorName + "/altitude"] = nh_->create_publisher<sensor_msgs::msg::Range>(it->second, queueSize);
                 }
                     break;
-
                 case ScalarSensorType::GPS:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                         pubs[sensorName] = nh_->create_publisher<sensor_msgs::msg::NavSatFix>(it->second, queueSize);
                 }
                     break;
-
                 case ScalarSensorType::PRESSURE:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                         pubs[sensorName] = nh_->create_publisher<sensor_msgs::msg::FluidPressure>(it->second, queueSize);
                 }
                     break;
-
                 case ScalarSensorType::INS:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
@@ -861,14 +846,12 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                         pubs[sensorName + "/odometry"] = nh_->create_publisher<nav_msgs::msg::Odometry>(it->second, queueSize);
                 }
                     break;
-
                 case ScalarSensorType::ODOM:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                         pubs[sensorName] = nh_->create_publisher<nav_msgs::msg::Odometry>(it->second, queueSize);
                 }
                     break;
-
                 case ScalarSensorType::MULTIBEAM:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
@@ -877,14 +860,12 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                         pubs[sensorName + "/pcl"] = nh_->create_publisher<sensor_msgs::msg::PointCloud2>(it->second, queueSize);
                 }
                     break;
-
                 case ScalarSensorType::PROFILER:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                         pubs[sensorName] = nh_->create_publisher<sensor_msgs::msg::LaserScan>(it->second, queueSize);
                 }
                     break;
-
                 case ScalarSensorType::PLUGIN:
                 {
                     ROS2SensorPluginInterface* iface = dynamic_cast<ROS2SensorPluginInterface*>(sens.get());
@@ -892,7 +873,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                         iface->CreatePublishers(nh_, pubs, pubTopics);
                 }
                     break;
-
                 default:
                     log.Print(MessageType::ERROR, "[ROS] Sensor '%s' not supported!", sensorName.c_str());
                     RCLCPP_ERROR(nh_->get_logger(), "Scenario parser: Sensor '%s' not supported!", sensorName.c_str());
@@ -909,7 +889,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
             }
         }
             break;
-
         case SensorType::VISION:
         {
             switch(static_cast<VisionSensor*>(sens.get())->GetVisionSensorType())
@@ -926,7 +905,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                     }
                 }
                     break;
-
                 case VisionSensorType::DEPTH_CAMERA:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
@@ -939,7 +917,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                     }
                 }
                     break;
-
                 case VisionSensorType::THERMAL_CAMERA:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
@@ -953,7 +930,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                     }
                 }
                     break;
-
                 case VisionSensorType::OPTICAL_FLOW_CAMERA:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
@@ -967,7 +943,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                     }
                 }
                     break;
-
                 case VisionSensorType::SEGMENTATION_CAMERA:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
@@ -981,7 +956,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                     }
                 }
                     break;
-
                 case VisionSensorType::EVENT_BASED_CAMERA:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
@@ -992,18 +966,16 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                     }
                 }
                     break;
-
                 case VisionSensorType::LIDAR:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
                     {
                         pubs[sensorName] = nh_->create_publisher<sensor_msgs::msg::PointCloud2>(it->second, queueSize);
-                        Lidar* mb = static_cast<Lidar*>(sens.get());
-                        mb->InstallNewDataHandler(std::bind(&ROS2SimulationManager::LidarScanReady, sim, _1));
+                        Lidar* lidar = static_cast<Lidar*>(sens.get());
+                        lidar->InstallNewDataHandler(std::bind(&ROS2SimulationManager::LidarScanReady, sim, _1));
                     }
                 }
                     break;
-
                 case VisionSensorType::FLS:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
@@ -1020,7 +992,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                     }
                 }
                     break;
-
                 case VisionSensorType::SSS:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
@@ -1037,7 +1008,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                     }
                 }
                     break;
-
                 case VisionSensorType::MSIS:
                 {
                     if (auto it = pubTopics.find("topic"); it != pubTopics.end())
@@ -1055,7 +1025,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
                     }
                 }
                     break;
-
                 default:
                     log.Print(MessageType::ERROR, "[ROS] Sensor '%s' not supported!", sensorName.c_str());
                     RCLCPP_ERROR(nh_->get_logger(), "Scenario parser: Sensor '%s' not supported!", sensorName.c_str());
@@ -1072,7 +1041,6 @@ std::unique_ptr<Sensor, SensorDeleter> ROS2ScenarioParser::ParseSensor(XMLElemen
             }
         }
             break;
-
         default:
             log.Print(MessageType::ERROR, "[ROS] Sensor '%s' not supported!", sensorName.c_str());
             RCLCPP_ERROR(nh_->get_logger(), "Scenario parser: Sensor '%s' not supported!", sensorName.c_str());

@@ -72,29 +72,32 @@ namespace sf
          */
         virtual bool ParseAnimated(XMLElement* element) override;
 
-        //! A method used to parse a single robot actuator description.
+        //! A method used to parse a single actuator description.
         /*!
          \param element a pointer to the XML node
-         \param robot a pointer to the robot object
+         \param namePrefix an optional prefix string
          \return success
          */
-        virtual std::unique_ptr<Actuator, ActuatorDeleter> ParseActuator(XMLElement* element, std::string_view namePrefix) override;
+        virtual std::unique_ptr<Actuator, ActuatorDeleter> 
+            ParseActuator(XMLElement* element, std::string_view namePrefix) override;
 
-        //! A method used to parse a single robot sensor description.
+        //! A method used to parse a single sensor description.
         /*!
          \param element a pointer to the XML node
-         \param robot a pointer to the robot object
+         \param namePrefix an optional prefix string
          \return success
          */
-        virtual std::unique_ptr<Sensor, SensorDeleter> ParseSensor(XMLElement* element, std::string_view namePrefix) override;
+        virtual std::unique_ptr<Sensor, SensorDeleter> 
+            ParseSensor(XMLElement* element, std::string_view namePrefix) override;
 
         //! A method used to parse a communication device description.
         /*!
          \param element a pointer to the XML node
-         \param namePrefix a string added at the beginning of the comm name
+         \param namePrefix an optional prefix string
          \return pointer to the communication device
          */
-        virtual std::unique_ptr<Comm, CommDeleter> ParseComm(XMLElement* element, std::string_view namePrefix) override;
+        virtual std::unique_ptr<Comm, CommDeleter> 
+            ParseComm(XMLElement* element, std::string_view namePrefix) override;
 
         //! A method used to parse a description of a light source.
         /*!
